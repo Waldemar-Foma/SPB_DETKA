@@ -1,9 +1,9 @@
-from flask import Blueprint, render_template
+from flask import Blueprint, redirect, url_for
 
 bp = Blueprint("main", __name__)
 
 
 @bp.get("/")
 def index():
-    """Главная страница — дашборд поиска."""
-    return render_template("search.html")
+    """Корень перенаправляет на дашборд."""
+    return redirect(url_for("dashboard.page"))

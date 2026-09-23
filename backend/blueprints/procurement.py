@@ -82,13 +82,14 @@ def _find_procurement(query: str) -> Procurement | None:
 
 
 def _build_card(procurement: Procurement, supplier: Supplier) -> dict:
-    """Собирает карточку контрагента с оценками и метриками."""
+    """Собирает карточку контрагента с оценками, метриками и координатами."""
     scores = compute_score(procurement, supplier)
     contracts = supplier.contracts or []
     total_amount = sum(float(c.amount) for c in contracts)
 
     return {
         **supplier.to_card(),
+        "coords": {"lat": supplier.lat, "lon": supplier.lon},
         "score": scores["total"],
         "relevance_label": relevance_label(scores["total"]),
         "tags": build_tags(procurement, supplier, scores),

@@ -1,12 +1,4 @@
-"""API аналитики.
-
-Эндпоинты возвращают 501 Not Implemented, пока функции в
-backend.services.analytics не реализованы. Это сделано специально:
-клиент уже знает контракт и может писать UI параллельно.
-"""
-
-from __future__ import annotations
-
+"""API аналитики."""
 from flask import Blueprint, jsonify
 
 from backend.services import analytics as svc

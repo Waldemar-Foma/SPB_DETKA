@@ -33,9 +33,9 @@ def details(inn: str):
     })
 
 
-def _group_by_year(contracts) -> dict[str, int]:
+def _group_by_year(contracts) -> dict:
     """Группирует контракты по годам для гистограммы."""
-    result: dict[str, int] = {}
+    result: dict = {}
     for c in contracts:
         key = str(c.year)
         result[key] = result.get(key, 0) + 1
