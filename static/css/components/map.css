@@ -12,3 +12,13 @@
   [data-theme="dark"] .mini-map .leaflet-tile {
     filter: brightness(.75) contrast(1.05);
   }
+
+  .geo-check__map .leaflet-container {
+    background: #0a0a0c;
+    font-family: var(--font-sans);
+  }
+
+  /* Метки на карте */
+  .geo-check__map .leaflet-interactive {
+    filter: brightness(1.2);
+  }

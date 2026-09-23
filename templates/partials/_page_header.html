@@ -1,0 +1,11 @@
+<header class="page-header glass">
+    <div class="page-header__text">
+      <h2 class="page-header__title">{{ title }}</h2>
+      <p class="page-header__subtitle">{{ subtitle }}</p>
+    </div>
+    {% if action_label %}
+      <button class="btn btn--accent" type="button">
+        <i class="las la-{{ action_icon or 'plus' }}"></i> {{ action_label }}
+      </button>
+    {% endif %}
+  </header>

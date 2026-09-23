@@ -1,35 +1,37 @@
 <nav class="app-sidebar" aria-label="Основная навигация">
+  <a href="{{ url_for('dashboard.page') }}" class="app-sidebar__logo" aria-label="СПб Контрагенты">
+    <span>СП</span>
+  </a>
+
   <ul class="app-sidebar__menu">
     {% set items = [
-      ('search',         'Поиск',      true),
-      ('clipboard-list', 'Закупки',    false),
-      ('users',          'Поставщики', false),
-      ('chart-bar',      'Аналитика',  false),
-      ('folder',         'Источники',  false),
-      ('cog',            'Настройки',  false)
+      ('chart-pie',     'Дашборд',    'dashboard.page'),
+      ('users',         'Поставщики', 'suppliers_page.page'),
+      ('file-search',   'Анализ ТЗ',  'analysis.page'),
+      ('shield-alt',    'Проверка СБ','security.page'),
+      ('file-contract', 'Контракты',  'contracts.page'),
+      ('chart-bar',     'Отчёты',     'reports.page')
     ] %}
-    {% for icon_name, label, active in items %}
+    {% for icon_name, label, endpoint in items %}
+      {% set is_active = request.endpoint and request.endpoint.startswith(endpoint.split('.')[0]) %}
       <li>
-        <a href="#" class="app-sidebar__link {{ 'is-active' if active else '' }}"
-           {{ 'aria-current=page' if active else '' }}>
+        <a href="{{ url_for(endpoint) }}"
+           class="app-sidebar__link {{ 'is-active' if is_active else '' }}"
+           title="{{ label }}"
+           aria-label="{{ label }}"
+           {{ 'aria-current=page' if is_active else '' }}>
           <i class="las la-{{ icon_name }}"></i>
-          <span>{{ label }}</span>
         </a>
       </li>
     {% endfor %}
   </ul>
 
-  <section class="app-sidebar__promo" aria-label="О сервисе">
-    <img class="app-sidebar__promo-art"
-         src="{{ url_for('static', filename='img/spb-silhouette.svg') }}"
-         alt="">
-    <h2 class="app-sidebar__promo-title">Санкт-Петербург</h2>
-    <p class="app-sidebar__promo-text">
-      Быстрый и точный подбор контрагентов для ваших закупок
-    </p>
-    <footer class="app-sidebar__promo-footer">
-      <span>v2.0.0</span>
-      <span class="status-dot">Демо-режим</span>
-    </footer>
-  </section>
+  <div class="app-sidebar__bottom">
+    <button class="app-sidebar__link" type="button" title="Настройки" aria-label="Настройки">
+      <i class="las la-cog"></i>
+    </button>
+    <button class="app-sidebar__link" type="button" title="Выход" aria-label="Выход">
+      <i class="las la-sign-out-alt"></i>
+    </button>
+  </div>
 </nav>

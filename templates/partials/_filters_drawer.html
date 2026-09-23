@@ -1,0 +1,75 @@
+<div class="filters-overlay" id="filters-overlay"></div>
+
+<aside class="filters-drawer" id="filters-drawer"
+       role="dialog" aria-modal="true" aria-label="Расширенные фильтры">
+
+  <div class="filters-drawer__head">
+    <h3 class="filters-drawer__title">Фильтры</h3>
+    <button class="icon-btn" id="filters-close" type="button" aria-label="Закрыть фильтры">
+      <i class="las la-times"></i>
+    </button>
+  </div>
+
+  <div class="filters-drawer__body">
+    <section class="filter-group">
+      <h4 class="filter-group__title">Тип компании</h4>
+      <label class="filter-check">
+        <input type="checkbox" name="company_type" value="Производитель">
+        <span>Производитель</span>
+      </label>
+      <label class="filter-check">
+        <input type="checkbox" name="company_type" value="Дистрибьютор">
+        <span>Дистрибьютор</span>
+      </label>
+      <label class="filter-check">
+        <input type="checkbox" name="company_type" value="Поставщик">
+        <span>Поставщик</span>
+      </label>
+    </section>
+
+    <section class="filter-group">
+      <h4 class="filter-group__title">Регион</h4>
+      <label class="filter-check">
+        <input type="checkbox" name="region" value="Санкт-Петербург">
+        <span>Санкт-Петербург</span>
+      </label>
+      <label class="filter-check">
+        <input type="checkbox" name="region" value="Ленинградская область">
+        <span>Ленинградская область</span>
+      </label>
+      <label class="filter-check">
+        <input type="checkbox" name="region" value="Москва">
+        <span>Москва</span>
+      </label>
+    </section>
+
+    <section class="filter-group">
+      <h4 class="filter-group__title">Опыт</h4>
+      <label class="filter-check">
+        <input type="radio" name="min_experience" value="">
+        <span>Любой</span>
+      </label>
+      <label class="filter-check">
+        <input type="radio" name="min_experience" value="5">
+        <span>От 5 лет</span>
+      </label>
+      <label class="filter-check">
+        <input type="radio" name="min_experience" value="10">
+        <span>От 10 лет</span>
+      </label>
+    </section>
+
+    <section class="filter-group">
+      <h4 class="filter-group__title">Минимальная выручка</h4>
+      <input type="number" class="filter-input" name="min_revenue"
+             placeholder="Например, 500000000"
+             min="0" step="10000000">
+      <p class="filter-hint">В рублях</p>
+    </section>
+  </div>
+
+  <div class="filters-drawer__foot">
+    <button class="btn btn--ghost" id="filters-reset" type="button">Сбросить</button>
+    <button class="btn btn--primary" id="filters-apply" type="button">Применить</button>
+  </div>
+</aside>

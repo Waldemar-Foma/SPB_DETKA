@@ -1,5 +1,7 @@
 import { h, icon } from '../utils/dom.js';
 import { formatMln, formatMrd } from '../utils/format.js';
+import { isFavorite, toggleFavorite } from '../utils/favorites.js';
+import { toast } from './toast.js';
 
 /**
  * Карточка контрагента для центральной ленты.
@@ -8,6 +10,22 @@ import { formatMln, formatMrd } from '../utils/format.js';
  */
 export function SupplierCard(item, onOpen) {
   const initial = (item.name.replace(/[«»"]/g, '').trim()[0] || '?').toUpperCase();
+  const fav = isFavorite(item.inn);
+
+  const starBtn = h('button', {
+    class: `favorite-btn ${fav ? 'is-active' : ''}`,
+    type: 'button',
+    'aria-label': fav ? 'Убрать из избранного' : 'Добавить в избранное',
+    onClick: (e) => {
+      e.stopPropagation();
+      const added = toggleFavorite(item.inn);
+      starBtn.classList.toggle('is-active', added);
+      starBtn.setAttribute('aria-label',
+        added ? 'Убрать из избранного' : 'Добавить в избранное');
+      toast(added ? 'Добавлено в избранное' : 'Удалено из избранного',
+        added ? 'success' : 'info');
+    },
+  }, icon('star'));
 
   return h('article', {
     class: 'supplier-card',
@@ -21,8 +39,12 @@ export function SupplierCard(item, onOpen) {
     },
   },
     h('div', { class: 'supplier-card__top' },
-      h('span', { class: 'badge badge--score' }, item.score, ' ', item.relevance_label),
-      h('span', { class: 'badge badge--type' }, item.company_type),
+      h('span', { class: 'badge badge--score' },
+        item.score, ' ', item.relevance_label),
+      h('div', { class: 'supplier-card__top-right' },
+        h('span', { class: 'badge badge--type' }, item.company_type),
+        starBtn,
+      ),
     ),
 
     h('div', { class: 'supplier-card__body' },

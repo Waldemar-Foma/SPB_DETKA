@@ -1,31 +1,56 @@
 [data-theme="light"] {
   color-scheme: light;
 
-  --color-bg:           #F8FAFC;
-  --color-surface:      #FFFFFF;
-  --color-surface-alt:  #F1F5F9;
+  --color-bg:           #f8fafc;
+  --color-surface:      #ffffff;
+  --color-surface-alt:  #f1f5f9;
+  --color-surface-soft: #f8fafc;
+  --color-surface-deep: #ffffff;
 
-  --color-border:       #E2E8F0;
-  --color-border-strong:#CBD5E1;
+  --color-border:        rgb(226 232 240 / .9);
+  --color-border-soft:   rgb(241 245 249 / .7);
+  --color-border-strong: #cbd5e1;
 
-  --color-text:         #0F172A;
+  --color-text:         #0f172a;
   --color-text-strong:  #020617;
-  --color-text-muted:   #64748B;
-  --color-text-subtle:  #94A3B8;
+  --color-text-muted:   #64748b;
+  --color-text-subtle:  #94a3b8;
+  --color-text-invert:  #f8fafc;
 
-  --color-primary:       #2563EB;
-  --color-primary-hover: #1D4ED8;
-  --color-primary-soft:  #EFF6FF;
+  --color-primary:       #0f172a;
+  --color-primary-hover: #020617;
+  --color-primary-soft:  #f1f5f9;
 
-  --color-success:       #10B981;
-  --color-success-soft:  #E6F4EA;
-  --color-success-text:  #137333;
+  --color-accent:        #ff4e64;
+  --color-accent-hover:  #e63950;
+  --color-accent-soft:   #fff1f3;
 
-  --color-teal:          #0D9488;
-  --color-warning:       #F59E0B;
-  --color-neutral:       #6B7280;
+  --color-link:       #4f46e5;
+  --color-link-hover: #4338ca;
 
-  --shadow-xs: 0 1px 2px rgb(15 23 42 / .04);
-  --shadow-sm: 0 1px 3px rgb(15 23 42 / .06), 0 1px 2px rgb(15 23 42 / .04);
-  --shadow-md: 0 4px 12px rgb(15 23 42 / .08);
+  --color-success:       #10b981;
+  --color-success-soft:  #ecfdf5;
+  --color-success-text:  #047857;
+  --color-success-border:#a7f3d0;
+
+  --color-warning:       #f59e0b;
+  --color-warning-soft:  #fffbeb;
+  --color-warning-text:  #b45309;
+  --color-warning-border:#fde68a;
+
+  --color-danger:        #ef4444;
+  --color-danger-soft:   #fef2f2;
+  --color-danger-text:   #b91c1c;
+  --color-danger-border: #fecaca;
+
+  --color-info:          #3b82f6;
+  --color-info-soft:     #eff6ff;
+  --color-info-text:     #1d4ed8;
+  --color-info-border:   #bfdbfe;
+
+  --shadow-xs: 0 1px 2px rgb(15 23 42 / .03);
+  --shadow-sm: 0 1px 3px rgb(15 23 42 / .05), 0 4px 12px rgb(15 23 42 / .04);
+  --shadow-md: 0 4px 16px rgb(15 23 42 / .06), 0 12px 32px rgb(15 23 42 / .06);
+  --shadow-lg: 0 12px 32px rgb(15 23 42 / .08);
+  --shadow-accent: 0 4px 20px rgb(255 78 100 / .18);
 }

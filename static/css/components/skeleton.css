@@ -1,0 +1,77 @@
+/* Скелетон-плашки для состояния загрузки. */
+
+@keyframes skeleton-shimmer {
+    0%   { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  
+  .skeleton {
+    display: block;
+    border-radius: var(--radius-sm);
+    background: linear-gradient(
+      90deg,
+      var(--color-surface-alt) 25%,
+      var(--color-border) 50%,
+      var(--color-surface-alt) 75%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.4s ease-in-out infinite;
+  }
+  
+  .skeleton--text      { height: 12px; width: 100%; }
+  .skeleton--title     { height: 20px; width: 60%; }
+  .skeleton--subtitle  { height: 14px; width: 40%; }
+  .skeleton--badge     { height: 22px; width: 120px; border-radius: var(--radius-pill); }
+  .skeleton--avatar    { height: 48px; width: 48px; border-radius: var(--radius-md); }
+  .skeleton--metric    { height: 28px; width: 80px; }
+  .skeleton--button    { height: 36px; width: 140px; border-radius: var(--radius-md); }
+  .skeleton--chart     { height: 140px; width: 100%; border-radius: var(--radius-md); }
+  .skeleton--map       { height: 180px; width: 100%; border-radius: var(--radius-md); }
+  
+  /* Карточка-скелетон для ленты */
+  .skeleton-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    padding: var(--space-5);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+  }
+  .skeleton-card__top {
+    display: flex;
+    justify-content: space-between;
+  }
+  .skeleton-card__body {
+    display: flex;
+    gap: var(--space-4);
+    align-items: center;
+  }
+  .skeleton-card__lines {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .skeleton-card__footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--color-border);
+  }
+  
+  /* Скелетон для drawer */
+  .skeleton-drawer {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    padding: var(--space-5);
+  }
+  .skeleton-drawer__section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding-top: var(--space-5);
+    border-top: 1px solid var(--color-border);
+  }

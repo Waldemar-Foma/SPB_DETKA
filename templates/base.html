@@ -3,12 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>СПб Контрагенты</title>
-  <meta name="description" content="Сервис поиска и оценки релевантности исполнителей государственных закупок">
+  <title>{{ page_title or 'СПб Контрагенты' }} — СПб · К</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <link rel="stylesheet"
         href="https://maxst.icons8.com/vue-static/landings/line-awesome/line-awesome/1.3.0/css/line-awesome.min.css">
@@ -20,29 +19,40 @@
     'css/themes/dark.css',
     'css/base.css',
     'css/layout.css',
+    'css/components/header.css',
     'css/components/button.css',
-    'css/components/card.css',
     'css/components/badge.css',
     'css/components/chip.css',
     'css/components/progress.css',
+    'css/components/table.css',
+    'css/components/kpi.css',
+    'css/components/widgets.css',
+    'css/components/ai-summary.css',
     'css/components/drawer.css',
     'css/components/chart.css',
     'css/components/map.css',
-    'css/pages/search.css',
-    'css/pages/procurement.css'
+    'css/components/map-view.css',
+    'css/components/view-switcher.css',
+    'css/components/skeleton.css',
+    'css/components/filters.css',
+    'css/components/toast.css',
+    'css/pages/dashboard.css',
+    'css/pages/placeholder.css'
   ] %}
     <link rel="stylesheet" href="{{ url_for('static', filename=sheet) }}">
   {% endfor %}
 </head>
-<body>
+<body data-page="{{ page_id or '' }}">
   {% include "_header.html" %}
   <div class="app-shell">
     {% include "_sidebar.html" %}
     <main class="app-main" id="main-feed">
       {% block main %}{% endblock %}
     </main>
-    <aside class="app-drawer" id="right-drawer" hidden aria-label="Профиль контрагента"></aside>
+    <aside class="app-drawer" id="right-drawer" aria-label="Досье ИИ"></aside>
   </div>
+
+  {% include "partials/_filters_drawer.html" %}
 
   <script src="{{ url_for('static', filename='vendor/chart.umd.min.js') }}"></script>
   <script src="{{ url_for('static', filename='vendor/leaflet/leaflet.js') }}"></script>

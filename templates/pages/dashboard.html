@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+
+{% block main %}
+
+  {# ============================================================
+     Карта на весь экран
+     ============================================================ #}
+  <div class="dash-map">
+    <div class="map-view__canvas" id="map-canvas"></div>
+  </div>
+
+  {# ============================================================
+     KPI-таблетка (левый верх)
+     ============================================================ #}
+  <div class="dash-float dash-kpi" role="status" aria-label="Ключевые метрики">
+    <div class="dash-kpi__item">
+      <div class="dash-kpi__icon"><i class="las la-database"></i></div>
+      <div class="dash-kpi__text">
+        <span class="dash-kpi__value" id="kpi-pool">—</span>
+        <span class="dash-kpi__label">в пуле</span>
+      </div>
+    </div>
+    <div class="dash-kpi__item">
+      <div class="dash-kpi__icon dash-kpi__icon--success"><i class="las la-list-check"></i></div>
+      <div class="dash-kpi__text">
+        <span class="dash-kpi__value" id="kpi-shortlist">—</span>
+        <span class="dash-kpi__label">в шорт-листе</span>
+      </div>
+    </div>
+    <div class="dash-kpi__item">
+      <div class="dash-kpi__icon dash-kpi__icon--info"><i class="las la-map-marker-alt"></i></div>
+      <div class="dash-kpi__text">
+        <span class="dash-kpi__value" id="kpi-local">—</span>
+        <span class="dash-kpi__label">локальные</span>
+      </div>
+    </div>
+    <div class="dash-kpi__item">
+      <div class="dash-kpi__icon dash-kpi__icon--warn"><i class="las la-shield-alt"></i></div>
+      <div class="dash-kpi__text">
+        <span class="dash-kpi__value" id="kpi-reliability">—</span>
+        <span class="dash-kpi__label">средний индекс</span>
+      </div>
+    </div>
+  </div>
+
+  {# ============================================================
+     Виджет 1: Распределение релевантности (слева сверху)
+     ============================================================ #}
+  <article class="dash-float dash-widget" data-widget="relevance">
+    <header class="dash-widget__head">
+      <div class="dash-widget__title">
+        <i class="las la-chart-area"></i>
+        Релевантность
+      </div>
+      <span class="dash-widget__actions">
+        <i class="las la-grip-vertical"></i>
+      </span>
+    </header>
+    <div class="dash-widget__body">
+      <canvas id="chart-relevance" height="140"></canvas>
+    </div>
+  </article>
+
+  {# ============================================================
+     Виджет 2: Топ регионов (слева снизу)
+     ============================================================ #}
+  <article class="dash-float dash-widget" data-widget="regions">
+    <header class="dash-widget__head">
+      <div class="dash-widget__title">
+        <i class="las la-map"></i>
+        Регионы
+      </div>
+      <span class="dash-widget__actions">
+        <i class="las la-grip-vertical"></i>
+      </span>
+    </header>
+    <div class="dash-widget__body">
+      <canvas id="chart-regions" height="140"></canvas>
+    </div>
+  </article>
+
+  {# ============================================================
+     Виджет 3: Типы компаний (справа сверху)
+     ============================================================ #}
+  <article class="dash-float dash-widget" data-widget="types">
+    <header class="dash-widget__head">
+      <div class="dash-widget__title">
+        <i class="las la-building"></i>
+        Типы
+      </div>
+      <span class="dash-widget__actions">
+        <i class="las la-grip-vertical"></i>
+      </span>
+    </header>
+    <div class="dash-widget__body">
+      <canvas id="chart-types" height="140"></canvas>
+    </div>
+  </article>
+
+  {# ============================================================
+     Всплывающая карточка компании (внизу по центру)
+     ============================================================ #}
+  <div class="map-popup" id="map-popup" hidden>
+    <button class="map-popup__close" id="map-popup-close"
+            type="button" aria-label="Закрыть">
+      <i class="las la-times"></i>
+    </button>
+
+    <span class="map-popup__name" id="map-popup-name">—</span>
+    <div class="map-popup__meta" id="map-popup-meta">—</div>
+
+    <div class="map-popup__score">
+      <span>Индекс</span>
+      <b id="map-popup-score">—</b>
+    </div>
+
+    <button class="btn btn--accent btn--sm" id="map-popup-open" type="button">
+      <i class="las la-file-search"></i> Обоснование
+    </button>
+  </div>
+
+  {# ============================================================
+     AI-сводка (правый низ, свёрнута по умолчанию)
+     ============================================================ #}
+  <aside class="dash-float dash-ai" id="ai-summary">
+    <div class="dash-ai__head">
+      <div class="dash-ai__icon"><i class="las la-sparkles"></i></div>
+      <div class="dash-ai__label"><i class="las la-robot"></i> AI-сводка</div>
+    </div>
+
+    <p class="dash-ai__text" id="ai-summary-short">
+      ИИ сформировал шорт-лист исполнителей. Нажмите «Показать подробнее»,
+      чтобы увидеть полный разбор.
+    </p>
+
+    <button class="dash-ai__toggle" id="ai-summary-toggle" type="button"
+            aria-expanded="false" aria-controls="ai-summary-details">
+      Показать подробнее
+    </button>
+
+    <div class="dash-ai__details" id="ai-summary-details" hidden>
+      <p class="dash-ai__text" id="ai-summary-text">
+        ИИ анализирует пул поставщиков и формирует шорт-лист.
+      </p>
+    </div>
+  </aside>
+
+  {# ============================================================
+     Таблица (режим list)
+     ============================================================ #}
+  <section class="dash-list" aria-label="Список исполнителей">
+    <div class="panel">
+      <header class="panel__head">
+        <div>
+          <h2 class="panel__title">Релевантные исполнители</h2>
+          <p class="panel__subtitle">
+            Шорт-лист сформирован ИИ. <span id="panel-count">0</span> компаний.
+          </p>
+        </div>
+        <div class="panel__actions">
+          <div class="search-inline">
+            <i class="las la-search" aria-hidden="true"></i>
+            <input type="search" id="feed-filter-input"
+                   placeholder="Поиск по названию, ИНН, продукции">
+          </div>
+          <button class="btn btn--ghost" id="feed-open-filters" type="button">
+            <i class="las la-sliders-h"></i> Фильтры
+          </button>
+        </div>
+      </header>
+
+      <div class="table-host">
+        <table class="shortlist">
+          <thead>
+            <tr>
+              <th>Компания</th>
+              <th>Роль</th>
+              <th>Регион</th>
+              <th>Объём контрактов</th>
+              <th>Индекс релевантности</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="shortlist-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+{% endblock %}

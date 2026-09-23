@@ -1,9 +1,7 @@
-/* Сброс и базовая типографика */
+/* Сброс и базовые стили */
 
 *, *::before, *::after { box-sizing: border-box; }
-
 html, body { margin: 0; padding: 0; }
-
 html { -webkit-text-size-adjust: 100%; }
 
 body {
@@ -13,7 +11,7 @@ body {
   color: var(--color-text);
   background: var(--color-bg);
   -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
+  -moz-osx-font-smoothing: grayscale;
   transition: background var(--dur-base) var(--ease),
               color var(--dur-base) var(--ease);
 }
@@ -22,8 +20,8 @@ h1, h2, h3, h4, p, ul, ol, figure { margin: 0; }
 ul, ol { padding: 0; list-style: none; }
 button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; background: none; border: none; padding: 0; }
-a { color: var(--color-primary); text-decoration: none; }
-a:hover { color: var(--color-primary-hover); }
+a { color: var(--color-link); text-decoration: none; }
+a:hover { color: var(--color-link-hover); }
 img, svg { display: block; max-width: 100%; }
 
 :focus-visible {
@@ -40,8 +38,26 @@ img, svg { display: block; max-width: 100%; }
   white-space: nowrap; border: 0;
 }
 
-/* Line Awesome: базовые размеры иконок по месту */
-.las, .lar, .lab {
-  line-height: 1;
-  vertical-align: middle;
+.las, .lar, .lab { line-height: 1; vertical-align: middle; }
+
+/* Аккуратные скроллбары */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-strong) transparent;
+}
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border-radius: 999px;
+}
+*::-webkit-scrollbar-thumb:hover { background: var(--color-text-subtle); }
+
+/* Уважаем настройку «меньше анимации» */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
 }

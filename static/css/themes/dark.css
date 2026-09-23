@@ -1,31 +1,64 @@
 [data-theme="dark"] {
   color-scheme: dark;
 
-  --color-bg:           #0B1220;
-  --color-surface:      #111827;
-  --color-surface-alt:  #1F2937;
+  /* Поверхности: матовый чёрный → тёмная карточка → приподнятая карточка */
+  --color-bg:           #121214;
+  --color-surface:      #1E1E22;
+  --color-surface-alt:  #26262B;
+  --color-surface-soft: #19191D;
+  --color-surface-deep: #0E0E10;
 
-  --color-border:       #1F2937;
-  --color-border-strong:#334155;
+  /* Границы: едва заметные белые линии */
+  --color-border:        rgb(255 255 255 / .08);
+  --color-border-soft:   rgb(255 255 255 / .04);
+  --color-border-strong: rgb(255 255 255 / .16);
 
-  --color-text:         #E5E7EB;
-  --color-text-strong:  #F9FAFB;
-  --color-text-muted:   #94A3B8;
-  --color-text-subtle:  #64748B;
+  /* Текст */
+  --color-text:         #e5e5e7;
+  --color-text-strong:  #ffffff;
+  --color-text-muted:   #8b8b93;
+  --color-text-subtle:  #5c5c63;
+  --color-text-invert:  #121214;
 
-  --color-primary:       #3B82F6;
-  --color-primary-hover: #60A5FA;
-  --color-primary-soft:  rgb(59 130 246 / .14);
+  /* Primary — просто белый текст на тёмном */
+  --color-primary:       #ffffff;
+  --color-primary-hover: #e5e5e7;
+  --color-primary-soft:  rgb(255 255 255 / .06);
 
-  --color-success:       #34D399;
-  --color-success-soft:  rgb(16 185 129 / .16);
-  --color-success-text:  #6EE7B7;
+  /* Accent — кораллово-розовый, единственный яркий цвет */
+  --color-accent:        #ff4e64;
+  --color-accent-hover:  #ff6679;
+  --color-accent-soft:   rgb(255 78 100 / .12);
 
-  --color-teal:          #2DD4BF;
-  --color-warning:       #FBBF24;
-  --color-neutral:       #94A3B8;
+  /* Ссылки */
+  --color-link:       #ff8a99;
+  --color-link-hover: #ffb3bd;
 
-  --shadow-xs: 0 1px 2px rgb(0 0 0 / .35);
-  --shadow-sm: 0 1px 3px rgb(0 0 0 / .45), 0 1px 2px rgb(0 0 0 / .30);
-  --shadow-md: 0 4px 14px rgb(0 0 0 / .45);
+  /* Статусы — приглушённые, пастельные на тёмном */
+  --color-success:       #4ade80;
+  --color-success-soft:  rgb(74 222 128 / .10);
+  --color-success-text:  #86efac;
+  --color-success-border:rgb(74 222 128 / .22);
+
+  --color-warning:       #fbbf24;
+  --color-warning-soft:  rgb(251 191 36 / .10);
+  --color-warning-text:  #fcd34d;
+  --color-warning-border:rgb(251 191 36 / .22);
+
+  --color-danger:        #f87171;
+  --color-danger-soft:   rgb(248 113 113 / .10);
+  --color-danger-text:   #fca5a5;
+  --color-danger-border: rgb(248 113 113 / .22);
+
+  --color-info:          #60a5fa;
+  --color-info-soft:     rgb(96 165 250 / .10);
+  --color-info-text:     #93c5fd;
+  --color-info-border:   rgb(96 165 250 / .22);
+
+  /* Тени — почти невидимые, только для подъёма */
+  --shadow-xs: 0 1px 2px rgb(0 0 0 / .25);
+  --shadow-sm: 0 2px 8px rgb(0 0 0 / .30);
+  --shadow-md: 0 8px 24px rgb(0 0 0 / .40);
+  --shadow-lg: 0 16px 40px rgb(0 0 0 / .50);
+  --shadow-accent: 0 4px 24px rgb(255 78 100 / .25);
 }

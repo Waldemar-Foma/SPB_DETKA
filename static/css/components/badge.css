@@ -2,28 +2,39 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 3px 10px;
+  padding: 4px 10px;
   border-radius: var(--radius-pill);
-  font-size: var(--fs-xs);
+  font-size: var(--fs-2xs);
   font-weight: var(--fw-medium);
-  line-height: 1.5;
+  letter-spacing: .01em;
+  line-height: 1.6;
   white-space: nowrap;
+  border: 1px solid transparent;
 }
 
-.badge--score {
+.badge--producer {
   background: var(--color-success-soft);
   color: var(--color-success-text);
-  font-weight: var(--fw-semibold);
-  font-variant-numeric: tabular-nums;
+  border-color: var(--color-success-border);
+}
+.badge--distributor {
+  background: var(--color-info-soft);
+  color: var(--color-info-text);
+  border-color: var(--color-info-border);
+}
+.badge--supplier {
+  background: var(--color-warning-soft);
+  color: var(--color-warning-text);
+  border-color: var(--color-warning-border);
 }
 
-.badge--type {
+.badge--local {
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  border-color: rgb(255 78 100 / .22);
+}
+.badge--regional {
   background: var(--color-primary-soft);
-  color: var(--color-primary);
-}
-
-.badge--tag {
-  background: var(--color-surface-alt);
   color: var(--color-text-muted);
-  font-weight: var(--fw-regular);
+  border-color: var(--color-border);
 }

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block main %}
+  {% with title='Анализ ТЗ',
+          subtitle='Автоматический разбор технического задания и подбор соответствий',
+          action_label='Загрузить ТЗ',
+          action_icon='upload' %}
+    {% include "partials/_page_header.html" %}
+  {% endwith %}
+
+  <section class="placeholder glass">
+    <div class="placeholder__icon"><i class="las la-file-search"></i></div>
+    <h3 class="placeholder__title">Загрузите техническое задание</h3>
+    <p class="placeholder__text">
+      ИИ разберёт документ, выделит ключевые требования, ОКПД2 и
+      сопоставит их с реестром поставщиков.
+    </p>
+    <button class="btn btn--accent" type="button">
+      <i class="las la-upload"></i> Загрузить PDF или DOCX
+    </button>
+  </section>
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block main %}
+  {% with title='Проверка СБ',
+          subtitle='Верификация контрагента по базам ФНС, ФССП, арбитража',
+          action_label='Запустить проверку',
+          action_icon='shield-alt' %}
+    {% include "partials/_page_header.html" %}
+  {% endwith %}
+
+  <section class="placeholder glass">
+    <div class="placeholder__icon"><i class="las la-shield-alt"></i></div>
+    <h3 class="placeholder__title">Модуль проверки безопасности</h3>
+    <p class="placeholder__text">
+      Проверка судебных дел, исполнительных производств, налоговых
+      задолженностей и аффилированности компании.
+    </p>
+    <button class="btn btn--accent" type="button">
+      <i class="las la-play"></i> Запустить проверку
+    </button>
+  </section>
+{% endblock %}

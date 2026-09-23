@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block main %}
+  {% with title='Контракты',
+          subtitle='История исполненных и активных государственных контрактов',
+          action_label='Экспорт',
+          action_icon='download' %}
+    {% include "partials/_page_header.html" %}
+  {% endwith %}
+
+  <section class="placeholder glass">
+    <div class="placeholder__icon"><i class="las la-file-contract"></i></div>
+    <h3 class="placeholder__title">История контрактов</h3>
+    <p class="placeholder__text">
+      Интеграция с ЕИС для отображения исполненных и текущих
+      государственных контрактов выбранных поставщиков.
+    </p>
+    <button class="btn btn--accent" type="button">
+      <i class="las la-sync-alt"></i> Синхронизировать с ЕИС
+    </button>
+  </section>
+{% endblock %}

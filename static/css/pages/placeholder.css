@@ -1,0 +1,56 @@
+/* --- Заголовок страницы ----------------------------------------------- */
+
+.page-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--space-5);
+    padding: var(--space-6) var(--space-7);
+    border-radius: var(--radius-2xl);
+    flex-wrap: wrap;
+  }
+  .page-header__title {
+    font-size: var(--fs-2xl);
+    font-weight: var(--fw-bold);
+    color: var(--color-text-strong);
+    letter-spacing: -.02em;
+  }
+  .page-header__subtitle {
+    margin-top: 6px;
+    font-size: var(--fs-sm);
+    color: var(--color-text-muted);
+    max-width: 60ch;
+  }
+
+  /* --- Плейсхолдер ------------------------------------------------------- */
+
+  .placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-12) var(--space-7);
+    text-align: center;
+    border-radius: var(--radius-2xl);
+  }
+  .placeholder__icon {
+    display: grid;
+    place-items: center;
+    width: 64px;
+    height: 64px;
+    border-radius: var(--radius-lg);
+    background: var(--color-accent-soft);
+    color: var(--color-accent);
+    font-size: 28px;
+  }
+  .placeholder__title {
+    font-size: var(--fs-xl);
+    font-weight: var(--fw-bold);
+    color: var(--color-text-strong);
+  }
+  .placeholder__text {
+    font-size: var(--fs-sm);
+    color: var(--color-text-muted);
+    max-width: 60ch;
+    line-height: var(--lh-base);
+  }

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block main %}
+  {% with title='Отчёты',
+          subtitle='Аналитические отчёты и выгрузки по закупкам',
+          action_label='Новый отчёт',
+          action_icon='plus' %}
+    {% include "partials/_page_header.html" %}
+  {% endwith %}
+
+  <section class="placeholder glass">
+    <div class="placeholder__icon"><i class="las la-chart-bar"></i></div>
+    <h3 class="placeholder__title">Генератор отчётов</h3>
+    <p class="placeholder__text">
+      Формирование выгрузок в PDF и Excel по закупкам, поставщикам
+      и результатам матчинга.
+    </p>
+    <button class="btn btn--accent" type="button">
+      <i class="las la-file-export"></i> Создать отчёт
+    </button>
+  </section>
+{% endblock %}

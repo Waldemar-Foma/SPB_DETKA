@@ -1,37 +1,36 @@
 <header class="app-header">
-  <div class="app-header__brand">
-    <span class="app-header__mark" aria-hidden="true">
-      <i class="las la-university"></i>
-    </span>
-    <div class="app-header__brand-text">
-      <span class="app-header__title">СПб Контрагенты</span>
-      <span class="app-header__subtitle">Умный подбор исполнителей для госзакупок</span>
+  <div class="app-header__left">
+    <h1 class="app-header__title">Подбор исполнителей</h1>
+
+    <div class="view-switcher" role="tablist" aria-label="Режим отображения">
+      <button class="view-tab is-active" data-view="map" type="button" role="tab">
+        Карта
+      </button>
+      <button class="view-tab" data-view="widgets" type="button" role="tab">
+        Виджеты
+      </button>
+      <button class="view-tab" data-view="list" type="button" role="tab">
+        Список
+      </button>
     </div>
   </div>
 
-  <form class="app-header__search" id="global-search" role="search">
-    <label class="visually-hidden" for="global-search-input">Поиск закупки</label>
-    <i class="las la-search app-header__search-icon" aria-hidden="true"></i>
-    <input
-      id="global-search-input"
-      class="app-header__search-input"
-      type="text"
-      name="q"
-      autocomplete="off"
-      placeholder="Номер закупки, название, ОКПД2, ключевые слова">
-    <button type="submit" class="btn btn--primary">Найти</button>
-  </form>
-
-  <div class="app-header__user">
-    <button class="icon-btn" id="theme-toggle" type="button" aria-label="Переключить тему">
-      <i class="las la-moon" id="theme-toggle-icon"></i>
-    </button>
-    <div class="app-header__profile">
-      <span class="avatar" aria-hidden="true">ВФ</span>
-      <span class="app-header__profile-text">
-        <span class="app-header__profile-name">Фоменко Владислав</span>
-        <span class="app-header__profile-role">Пользователь</span>
+  <div class="app-header__right">
+    <button class="theme-toggle" id="theme-toggle" type="button"
+            aria-label="Переключить тему" role="switch" aria-checked="false">
+      <span class="theme-toggle__icon theme-toggle__icon--sun">
+        <i class="las la-sun"></i>
       </span>
-    </div>
+      <span class="theme-toggle__icon theme-toggle__icon--moon">
+        <i class="las la-moon"></i>
+      </span>
+      <span class="theme-toggle__thumb"></span>
+    </button>
+
+    <button class="icon-btn" type="button" aria-label="Уведомления">
+      <i class="las la-bell"></i>
+    </button>
+
+    <div class="avatar" aria-hidden="true">ВФ</div>
   </div>
 </header>

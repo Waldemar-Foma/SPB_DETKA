@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block main %}
+  {% with title='Реестр поставщиков',
+          subtitle='Полный список контрагентов, прошедших верификацию',
+          action_label='Добавить поставщика',
+          action_icon='plus' %}
+    {% include "partials/_page_header.html" %}
+  {% endwith %}
+
+  <section class="panel glass">
+    <header class="panel__head">
+      <div>
+        <h2 class="panel__title">Все поставщики</h2>
+        <p class="panel__subtitle">Данные синхронизируются из ЕГРЮЛ и ЕИС</p>
+      </div>
+      <div class="panel__actions">
+        <div class="search-inline">
+          <i class="las la-search"></i>
+          <input type="search" placeholder="Поиск по названию или ИНН">
+        </div>
+      </div>
+    </header>
+
+    <div class="table-host">
+      <table class="shortlist">
+        <thead>
+          <tr>
+            <th>Компания</th>
+            <th>Роль</th>
+            <th>Регион</th>
+            <th>Опыт</th>
+            <th>Надёжность</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="shortlist-body"></tbody>
+      </table>
+    </div>
+  </section>
+{% endblock %}

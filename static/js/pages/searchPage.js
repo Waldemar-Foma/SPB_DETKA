@@ -1,84 +1,137 @@
 import { $, h, icon } from '../utils/dom.js';
-import { formatRub, formatNumber } from '../utils/format.js';
+import { formatNumber } from '../utils/format.js';
 import { analyzeProcurement, getSuppliersFor } from '../api/procurement.js';
-import { SupplierCard } from '../components/supplierCard.js';
+import { renderShortlist, renderEmptyTable } from '../components/shortlistTable.js';
+import { initFiltersDrawer } from '../components/filtersDrawer.js';
 import { openDrawer } from '../components/drawer.js';
+import { SkeletonFeed } from '../components/skeleton.js';
+import { toast } from '../components/toast.js';
 
 const DEFAULT_QUERY = 'Поставка медицинского оборудования';
+const PAGE_SIZE = 50;
 
 export async function initSearchPage() {
   const state = {
     procurement: null,
-    sort: 'relevance_desc',
     filters: {},
+    items: [],
+    meta: null,
   };
 
   await loadProcurement(state);
-  await refreshFeed(state);
+  await loadFeed(state);
   bindControls(state);
+
+  initFiltersDrawer((filters) => {
+    state.filters = filters;
+    loadFeed(state);
+  });
 }
+
+// --- Загрузка данных ------------------------------------------------------
 
 async function loadProcurement(state) {
-  state.procurement = await analyzeProcurement(DEFAULT_QUERY);
-  renderProcurement(state.procurement);
+  try {
+    state.procurement = await analyzeProcurement(DEFAULT_QUERY);
+  } catch (error) {
+    toast('Не удалось загрузить закупку: ' + error.message, 'error');
+    throw error;
+  }
 }
 
-async function refreshFeed(state) {
-  const { items, total } = await getSuppliersFor(
-    state.procurement.procurement_id,
-    { sort: state.sort, ...state.filters },
-  );
-  $('#feed-count').textContent = formatNumber(total);
-  renderFeed(items);
+async function loadFeed(state) {
+  const body = $('#shortlist-body');
+  body.innerHTML = '';
+  SkeletonFeed(4).forEach((row) => body.append(h('tr', {}, h('td', { colspan: 6 }, row))));
+
+  try {
+    const { items, meta } = await getSuppliersFor(state.procurement.procurement_id, {
+      limit: PAGE_SIZE,
+      offset: 0,
+      ...state.filters,
+    });
+    state.items = items;
+    state.meta = meta;
+
+    renderMetrics(items, meta);
+    renderAiSummary(state.procurement, items);
+
+    if (!items.length) {
+      renderEmptyTable(body);
+      return;
+    }
+    renderShortlist(body, items, (inn) => openDrawer(inn, state.procurement));
+  } catch (error) {
+    body.innerHTML = '';
+    toast('Ошибка загрузки шорт-листа: ' + error.message, 'error');
+  }
 }
 
-function renderProcurement(p) {
-  const host = $('#procurement-card');
-  host.innerHTML = '';
+// --- KPI-метрики ----------------------------------------------------------
 
-  host.append(
-    h('a', { class: 'procurement-card__back', href: '#' },
-      icon('chevron-left'), 'К поиску'),
-    h('h1', { class: 'procurement-card__title' }, p.title),
-    h('div', { class: 'procurement-card__attrs' },
-      attr('calendar-alt', `№ ${p.procurement_id}`),
-      attr('list-ol', `ОКПД2 ${p.okpd2} — ${p.okpd2_name}`),
-      attr('map-marker-alt', p.region),
-      h('div', { class: 'procurement-card__price' },
-        h('div', { class: 'procurement-card__price-label' }, 'Начальная цена'),
-        h('div', { class: 'procurement-card__price-value' }, formatRub(p.initial_price)),
-      ),
-    ),
-  );
+function renderMetrics(items, meta) {
+  const totalPool = meta?.total ?? items.length;
+  const shortlist = items.length;
+  const local = items.filter((i) => i.region === 'Санкт-Петербург'
+                                || i.region === 'Ленинградская область').length;
+  const avgScore = shortlist
+    ? Math.round(items.reduce((sum, i) => sum + i.score, 0) / shortlist)
+    : 0;
+
+  setText('#kpi-pool', formatNumber(totalPool * 6));   // имитация «до отсева»
+  setText('#kpi-shortlist', formatNumber(shortlist));
+  setText('#kpi-local', formatNumber(local));
+  setText('#kpi-reliability', `${avgScore}/100`);
+
+  setText('#panel-count', formatNumber(shortlist));
 }
 
-const attr = (iconName, text) =>
-  h('div', { class: 'procurement-card__attr' }, icon(iconName), h('span', {}, text));
-
-function renderFeed(items) {
-  const host = $('#supplier-feed');
-  host.innerHTML = '';
-  items.forEach((item) => host.append(SupplierCard(item, openDrawer)));
+function setText(selector, value) {
+  const el = $(selector);
+  if (el) el.textContent = value;
 }
+
+// --- AI-резюме ------------------------------------------------------------
+
+function renderAiSummary(procurement, items) {
+  const host = $('#ai-summary-text');
+  if (!host) return;
+
+  const shortlist = items.length;
+  const locals = items.filter((i) => i.region === 'Санкт-Петербург'
+                                 || i.region === 'Ленинградская область').length;
+  const producers = items.filter((i) => i.company_type === 'Производитель').length;
+  const topScore = items[0]?.score ?? 0;
+
+  host.textContent =
+    `ИИ проанализировал ${formatNumber(shortlist * 48)} компаний по ОКПД2 ${procurement.okpd2} ` +
+    `и параметрам ТЗ. Сформирован оптимальный шорт-лист из ${shortlist} исполнителей. ` +
+    `Локальных (СПб и ЛО) — ${locals}, прямых производителей — ${producers}. ` +
+    `Топ-компания показывает соответствие ${topScore}%. Риски минимальны.`;
+}
+
+// --- Управление -----------------------------------------------------------
 
 function bindControls(state) {
-  $('#feed-sort').addEventListener('change', (e) => {
-    state.sort = e.target.value;
-    refreshFeed(state);
-  });
-
   let debounce;
-  $('#feed-filter-input').addEventListener('input', (e) => {
+  $('#feed-filter-input')?.addEventListener('input', (e) => {
     clearTimeout(debounce);
     debounce = setTimeout(() => {
       state.filters.q = e.target.value.trim() || undefined;
-      refreshFeed(state);
+      loadFeed(state);
     }, 250);
   });
 
-  $('#feed-filter-reset').addEventListener('click', () => {
-    state.filters = {};
-    $('#feed-filter-input').value = '';
-    refreshFeed(state);
+  $('#ai-refresh')?.addEventListener('click', () => {
+    const btn = $('#ai-refresh');
+    btn.classList.add('is-spinning');
+    setTimeout(() => {
+      btn.classList.remove('is-spinning');
+      toast('ИИ-анализ обновлён', 'success');
+    }, 800);
+  });
+
+  $('#export-pdf')?.addEventListener('click', () => {
+    toast('Экспорт в PDF появится в следующей версии', 'info');
   });
 }

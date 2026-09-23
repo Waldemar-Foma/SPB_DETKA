@@ -28,15 +28,31 @@ def create_app(env: str = "dev") -> Flask:
 
 def _register_blueprints(app: Flask) -> None:
     """Регистрирует все blueprint'ы приложения."""
-    from backend.blueprints.main import bp as main_bp
+    # API
     from backend.blueprints.procurement import bp as procurement_bp
-    from backend.blueprints.suppliers import bp as suppliers_bp
+    from backend.blueprints.suppliers import bp as suppliers_api_bp
     from backend.blueprints.analytics import bp as analytics_bp
 
-    app.register_blueprint(main_bp)
     app.register_blueprint(procurement_bp, url_prefix="/api/v1/procurement")
-    app.register_blueprint(suppliers_bp,   url_prefix="/api/v1/suppliers")
-    app.register_blueprint(analytics_bp,   url_prefix="/api/v1/analytics")
+    app.register_blueprint(suppliers_api_bp, url_prefix="/api/v1/suppliers")
+    app.register_blueprint(analytics_bp, url_prefix="/api/v1/analytics")
+
+    # HTML-страницы
+    from backend.blueprints.main import bp as main_bp
+    from backend.blueprints.dashboard import bp as dashboard_bp
+    from backend.blueprints.suppliers_page import bp as suppliers_page_bp
+    from backend.blueprints.analysis import bp as analysis_bp
+    from backend.blueprints.security import bp as security_bp
+    from backend.blueprints.contracts import bp as contracts_bp
+    from backend.blueprints.reports import bp as reports_bp
+
+    app.register_blueprint(main_bp)
+    app.register_blueprint(dashboard_bp)
+    app.register_blueprint(suppliers_page_bp)
+    app.register_blueprint(analysis_bp)
+    app.register_blueprint(security_bp)
+    app.register_blueprint(contracts_bp)
+    app.register_blueprint(reports_bp)
 
 def _register_error_handlers(app: Flask) -> None:
     """Единый JSON-формат ошибок для API."""

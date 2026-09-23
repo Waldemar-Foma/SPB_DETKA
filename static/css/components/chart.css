@@ -1,29 +1,50 @@
-.chart-canvas {
-  width: 100%;
-  height: 140px;
-}
+/* Контейнер для Chart.js: фиксированная высота, position relative —
+   иначе responsive-график пересчитывает высоту и «съезжает». */
 
-.radial {
-  position: relative;
-  width: 96px;
-  height: 96px;
-  flex-shrink: 0;
-}
-.radial__value {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-content: center;
-  text-align: center;
-  font-size: var(--fs-2xl);
-  font-weight: var(--fw-bold);
-  font-variant-numeric: tabular-nums;
-  color: var(--color-text-strong);
-  line-height: 1.1;
-}
-.radial__value small {
-  display: block;
-  font-size: var(--fs-2xs);
-  font-weight: var(--fw-medium);
-  color: var(--color-text-muted);
-}
+   .chart-box {
+    position: relative;
+    width: 100%;
+    height: 140px;
+  }
+  
+  .chart-box--empty {
+    display: grid;
+    place-items: center;
+    font-size: var(--fs-sm);
+    color: var(--color-text-muted);
+    background: var(--color-surface-alt);
+    border-radius: var(--radius-md);
+  }
+  
+  .chart-box canvas {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+  }
+  
+  /* Круговой индикатор релевантности */
+  
+  .radial {
+    position: relative;
+    width: 96px;
+    height: 96px;
+    flex-shrink: 0;
+  }
+  .radial__value {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-content: center;
+    text-align: center;
+    font-size: var(--fs-2xl);
+    font-weight: var(--fw-bold);
+    font-variant-numeric: tabular-nums;
+    color: var(--color-text-strong);
+    line-height: 1.1;
+  }
+  .radial__value small {
+    display: block;
+    font-size: var(--fs-2xs);
+    font-weight: var(--fw-medium);
+    color: var(--color-text-muted);
+  }
