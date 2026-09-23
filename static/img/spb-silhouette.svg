@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 80" fill="currentColor">
+  <path d="M20 60h200v6H20z" opacity=".35"/>
+  <path d="M40 60V38l8-4v26zM60 60V32l10-6v34zM90 60V28l6-14 6 14v32zM120 60V30l8-6 8 6v30zM150 60V36l10-6v30zM180 60V40l8-6v26z" opacity=".55"/>
+  <circle cx="120" cy="10" r="2.5" opacity=".7"/>
+  <path d="M119 12h2v10h-2z" opacity=".7"/>
+  <path d="M30 66h180v2H30z" opacity=".25"/>
+</svg>

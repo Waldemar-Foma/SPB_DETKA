@@ -1,0 +1,33 @@
+.factor {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.factor__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: var(--fs-xs);
+  color: var(--color-text-muted);
+}
+.factor__value {
+  font-weight: var(--fw-semibold);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+}
+
+.factor__track {
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-alt);
+  overflow: hidden;
+}
+
+.factor__fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-success);
+  transition: width var(--dur-base) var(--ease);
+}
+.factor__fill--accent { background: var(--color-primary); }

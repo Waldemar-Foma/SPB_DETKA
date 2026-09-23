@@ -1,0 +1,37 @@
+<header class="app-header">
+  <div class="app-header__brand">
+    <span class="app-header__mark" aria-hidden="true">
+      <i class="las la-university"></i>
+    </span>
+    <div class="app-header__brand-text">
+      <span class="app-header__title">СПб Контрагенты</span>
+      <span class="app-header__subtitle">Умный подбор исполнителей для госзакупок</span>
+    </div>
+  </div>
+
+  <form class="app-header__search" id="global-search" role="search">
+    <label class="visually-hidden" for="global-search-input">Поиск закупки</label>
+    <i class="las la-search app-header__search-icon" aria-hidden="true"></i>
+    <input
+      id="global-search-input"
+      class="app-header__search-input"
+      type="text"
+      name="q"
+      autocomplete="off"
+      placeholder="Номер закупки, название, ОКПД2, ключевые слова">
+    <button type="submit" class="btn btn--primary">Найти</button>
+  </form>
+
+  <div class="app-header__user">
+    <button class="icon-btn" id="theme-toggle" type="button" aria-label="Переключить тему">
+      <i class="las la-moon" id="theme-toggle-icon"></i>
+    </button>
+    <div class="app-header__profile">
+      <span class="avatar" aria-hidden="true">ВФ</span>
+      <span class="app-header__profile-text">
+        <span class="app-header__profile-name">Фоменко Владислав</span>
+        <span class="app-header__profile-role">Пользователь</span>
+      </span>
+    </div>
+  </div>
+</header>

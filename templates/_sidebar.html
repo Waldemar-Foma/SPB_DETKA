@@ -1,0 +1,35 @@
+<nav class="app-sidebar" aria-label="Основная навигация">
+  <ul class="app-sidebar__menu">
+    {% set items = [
+      ('search',         'Поиск',      true),
+      ('clipboard-list', 'Закупки',    false),
+      ('users',          'Поставщики', false),
+      ('chart-bar',      'Аналитика',  false),
+      ('folder',         'Источники',  false),
+      ('cog',            'Настройки',  false)
+    ] %}
+    {% for icon_name, label, active in items %}
+      <li>
+        <a href="#" class="app-sidebar__link {{ 'is-active' if active else '' }}"
+           {{ 'aria-current=page' if active else '' }}>
+          <i class="las la-{{ icon_name }}"></i>
+          <span>{{ label }}</span>
+        </a>
+      </li>
+    {% endfor %}
+  </ul>
+
+  <section class="app-sidebar__promo" aria-label="О сервисе">
+    <img class="app-sidebar__promo-art"
+         src="{{ url_for('static', filename='img/spb-silhouette.svg') }}"
+         alt="">
+    <h2 class="app-sidebar__promo-title">Санкт-Петербург</h2>
+    <p class="app-sidebar__promo-text">
+      Быстрый и точный подбор контрагентов для ваших закупок
+    </p>
+    <footer class="app-sidebar__promo-footer">
+      <span>v2.0.0</span>
+      <span class="status-dot">Демо-режим</span>
+    </footer>
+  </section>
+</nav>

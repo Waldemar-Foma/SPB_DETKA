@@ -1,0 +1,14 @@
+.mini-map {
+    height: 180px;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface-alt);
+  }
+  .mini-map .leaflet-container {
+    background: var(--color-surface-alt);
+    font-family: var(--font-sans);
+  }
+  [data-theme="dark"] .mini-map .leaflet-tile {
+    filter: brightness(.75) contrast(1.05);
+  }

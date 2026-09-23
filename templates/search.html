@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block main %}
+  <section id="procurement-card" class="procurement-card" aria-live="polite"></section>
+
+  <section class="feed-toolbar">
+    <div class="feed-toolbar__head">
+      <h2 class="feed-toolbar__title">
+        Найдено <span id="feed-count">0</span> потенциальных исполнителей
+      </h2>
+      <label class="select">
+        <span class="select__label">Сортировка:</span>
+        <select id="feed-sort" class="select__control">
+          <option value="relevance_desc">Релевантность</option>
+          <option value="contracts_desc">Контракты</option>
+          <option value="revenue_desc">Выручка</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="feed-toolbar__search">
+      <i class="las la-search" aria-hidden="true"></i>
+      <input type="search" id="feed-filter-input"
+             placeholder="Поиск по названию, ИНН, продукции">
+      <button class="btn btn--ghost" id="feed-filter-reset" type="button">Сбросить</button>
+    </div>
+  </section>
+
+  <section id="supplier-feed" class="supplier-feed" aria-label="Список контрагентов"></section>
+{% endblock %}
