@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block main %}
+<section class="request-new-page">
+  <header class="requests-hero requests-hero--compact">
+    <div><span class="cabinet-kicker">Новая заявка</span><h1>Что вы хотите заказать?</h1><p>Можно загрузить готовое ТЗ или описать задачу своими словами.</p></div>
+  </header>
+
+  {% if error %}<div class="auth-alert auth-alert--error">{{ error }}</div>{% endif %}
+
+  {% if mode not in ['manual', 'spec'] %}
+    <div class="request-mode-grid">
+      <a class="request-mode" href="{{ url_for('contracts.new_request', mode='spec') }}">
+        <i class="las la-file-upload"></i><h2>Загрузить ТЗ</h2><p>PDF, DOCX или TXT. Система извлечёт ключевые слова и, если он указан, ОКПД2.</p><span>Выбрать →</span>
+      </a>
+      <a class="request-mode" href="{{ url_for('contracts.new_request', mode='manual') }}">
+        <i class="las la-pen"></i><h2>Описать самостоятельно</h2><p>Напишите простыми словами, что нужно купить, выполнить или оказать.</p><span>Выбрать →</span>
+      </a>
+    </div>
+  {% elif mode == 'manual' %}
+    <form method="post" class="panel request-form">
+      <input type="hidden" name="mode" value="manual">
+      <div class="panel__head"><div><h2 class="panel__title">Опишите заказ</h2><p class="panel__subtitle">Не нужно подбирать специальные формулировки — смысл будет сравниваться с профилями компаний.</p></div></div>
+      <div class="ops-form ops-form--grid">
+        <label class="ops-field ops-field--wide"><span>Что нужно?</span><input name="title" required value="{{ values.title }}" placeholder="Например: поставка офисной мебели"></label>
+        <label class="ops-field ops-field--wide"><span>Описание</span><textarea name="description" required rows="7" placeholder="Количество, характеристики, сроки, особенности…">{{ values.description }}</textarea></label>
+        <label class="ops-field"><span>Бюджет, ₽ · необязательно</span><input name="initial_price" value="{{ values.initial_price }}" inputmode="decimal" placeholder="500000"></label>
+        <label class="ops-field"><span>Регион исполнения</span><input name="delivery_region" value="{{ values.delivery_region }}" placeholder="Санкт-Петербург"></label>
+        <label class="ops-field"><span>ОКПД2 · если знаете</span><input name="okpd2" value="{{ values.okpd2 }}" placeholder="Можно оставить пустым"></label>
+        <div class="ops-form__actions request-form__actions"><a class="btn btn--ghost" href="{{ url_for('contracts.new_request') }}">Назад</a><button class="btn btn--accent" type="submit">Найти исполнителей</button></div>
+      </div>
+    </form>
+  {% else %}
+    <form method="post" enctype="multipart/form-data" class="panel request-form">
+      <input type="hidden" name="mode" value="spec">
+      <div class="panel__head"><div><h2 class="panel__title">Загрузите ТЗ</h2><p class="panel__subtitle">Из текста будут выделены ключевые слова и найденные коды ОКПД2. Скан PDF без текстового слоя пока требует OCR.</p></div></div>
+      <div class="ops-form ops-form--grid">
+        <label class="ops-field ops-field--wide request-upload"><span>Файл</span><input type="file" name="file" accept=".pdf,.docx,.txt"></label>
+        <label class="ops-field ops-field--wide"><span>Или вставьте текст ТЗ</span><textarea name="spec_text" rows="8" placeholder="Вставьте текст, если не хотите загружать файл"></textarea></label>
+        <label class="ops-field"><span>Название заявки · необязательно</span><input name="title" value="{{ values.title }}" placeholder="Система попробует определить сама"></label>
+        <label class="ops-field"><span>Бюджет, ₽ · необязательно</span><input name="initial_price" value="{{ values.initial_price }}" inputmode="decimal"></label>
+        <label class="ops-field"><span>Регион исполнения</span><input name="delivery_region" value="{{ values.delivery_region }}"></label>
+        <label class="ops-field"><span>ОКПД2 · если знаете</span><input name="okpd2" value="{{ values.okpd2 }}"></label>
+        <div class="ops-form__actions request-form__actions"><a class="btn btn--ghost" href="{{ url_for('contracts.new_request') }}">Назад</a><button class="btn btn--accent" type="submit">Проанализировать и найти</button></div>
+      </div>
+    </form>
+  {% endif %}
+</section>
+{% endblock %}

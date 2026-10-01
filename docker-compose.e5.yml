@@ -1,0 +1,21 @@
+services:
+  e5:
+    image: ghcr.io/ggml-org/llama.cpp:server
+    command:
+      - -m
+      - /models/multilingual-e5-base-q4_k.gguf
+      - --embedding
+      - --pooling
+      - mean
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8080"
+    volumes:
+      - ./models:/models:ro
+    restart: unless-stopped
+
+  app:
+    depends_on:
+      e5:
+        condition: service_started

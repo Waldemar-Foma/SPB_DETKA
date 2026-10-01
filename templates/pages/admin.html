@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block main %}
+  <header class="page-header glass">
+    <div class="page-header__text">
+      <h2 class="page-header__title">Администрирование</h2>
+      <p class="page-header__subtitle">Контроль локальной базы, парсера ГИСП и локального контура подбора. Панель доступна только аккаунту администратора.</p>
+    </div>
+    <button class="btn btn--ghost" id="admin-refresh" type="button"><i class="las la-sync"></i> Обновить статус</button>
+  </header>
+
+  <section class="ops-kpis">
+    <article class="cabinet-stat"><span>Режим данных</span><strong class="ops-kpi-small" id="admin-data-mode">{{ data_mode }}</strong></article>
+    <article class="cabinet-stat"><span>Контрагентов</span><strong id="admin-count-suppliers">{{ counts.suppliers }}</strong></article>
+    <article class="cabinet-stat"><span>Закупок</span><strong id="admin-count-procurements">{{ counts.procurements }}</strong></article>
+    <article class="cabinet-stat"><span>Исторических побед</span><strong id="admin-count-contracts">{{ counts.contracts }}</strong></article>
+    <article class="cabinet-stat"><span>Пользователей</span><strong id="admin-count-users">{{ counts.users }}</strong></article>
+  </section>
+
+  <section class="ops-two-col">
+    <article class="panel glass ops-panel">
+      <header class="panel__head"><div><h2 class="panel__title">Локальные нейросети</h2><p class="panel__subtitle">all-minilm + FAISS для первичного пула, multilingual-e5-base для финального скоринга и qwen2.5:3b для объяснений.</p></div><button class="btn btn--accent btn--sm" id="admin-test-models" type="button">Тест инференса</button></header>
+      <div class="ops-health-grid">
+        <div class="ops-health" id="health-candidate"><span class="ops-health__dot"></span><div><strong>FAISS / all-minilm</strong><span>Проверяем…</span></div></div>
+        <div class="ops-health" id="health-embeddings"><span class="ops-health__dot"></span><div><strong>Final semantic / E5</strong><span>Проверяем…</span></div></div>
+        <div class="ops-health" id="health-llm"><span class="ops-health__dot"></span><div><strong>Qwen</strong><span>Проверяем…</span></div></div>
+      </div>
+      <pre class="ops-log" id="model-test-output">Нажмите «Тест инференса», чтобы прогнать реальный запрос через FAISS/all-minilm, E5 и Qwen.</pre>
+    </article>
+
+    <article class="panel glass ops-panel">
+      <header class="panel__head"><div><h2 class="panel__title">ГИСП / Минпромторг</h2><p class="panel__subtitle">Скачивание реестра идёт отдельным процессом внутри контейнера. Chromium для Playwright уже установлен Docker-образом; синхронизацию можно запускать прямо отсюда.</p></div><div class="panel__actions"><button class="btn btn--ghost btn--sm" id="admin-enrich-gisp" type="button">Применить текущий XLSX</button><button class="btn btn--accent btn--sm" id="admin-run-gisp" type="button">Скачать и синхронизировать</button></div></header>
+      <div class="ops-health-grid">
+        <div class="ops-health" id="health-gisp-job"><span class="ops-health__dot"></span><div><strong>Задача</strong><span>—</span></div></div>
+        <div class="ops-health" id="health-gisp-file"><span class="ops-health__dot"></span><div><strong>Файл реестра</strong><span>{{ 'есть' if gisp_file.exists else 'не скачан' }}</span></div></div>
+      </div>
+      <div class="ops-note">
+        {% if latest_sync %}Последнее обогащение: {{ latest_sync.status }} · строк {{ latest_sync.rows_total }} · совпало {{ latest_sync.matched_suppliers }}{% else %}Синхронизация ещё не выполнялась.{% endif %}
+      </div>
+    </article>
+  </section>
+
+  <section class="panel glass ops-panel">
+    <header class="panel__head"><div><h2 class="panel__title">Журнал ГИСП</h2><p class="panel__subtitle">Последние строки процесса скачивания и обогащения.</p></div></header>
+    <pre class="ops-log ops-log--large" id="gisp-log">Журнал пока пуст.</pre>
+  </section>
+
+  <section class="panel glass ops-panel">
+    <header class="panel__head"><div><h2 class="panel__title">Источники данных в БД</h2><p class="panel__subtitle">По ним можно понять, работает приложение сейчас на demo или на импортированных данных.</p></div></header>
+    <div class="ops-tags">{% for source in data_sources %}<span class="badge badge--supplier">{{ source }}</span>{% else %}<span class="ops-muted">Источники не найдены.</span>{% endfor %}</div>
+  </section>
+{% endblock %}

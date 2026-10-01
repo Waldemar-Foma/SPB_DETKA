@@ -1,36 +1,22 @@
 <header class="app-header">
   <div class="app-header__left">
-    <h1 class="app-header__title">Подбор исполнителей</h1>
-
-    <div class="view-switcher" role="tablist" aria-label="Режим отображения">
-      <button class="view-tab is-active" data-view="map" type="button" role="tab">
-        Карта
-      </button>
-      <button class="view-tab" data-view="widgets" type="button" role="tab">
-        Виджеты
-      </button>
-      <button class="view-tab" data-view="list" type="button" role="tab">
-        Список
-      </button>
-    </div>
+    <h1 class="app-header__title">{{ page_title or 'Подбор исполнителей' }}</h1>
+    {% if page_id == 'dashboard' %}
+      <div class="view-switcher" role="tablist" aria-label="Режим отображения">
+        <button class="view-tab is-active" data-view="map" type="button" role="tab"><i class="las la-map"></i> Карта</button>
+        <button class="view-tab" data-view="list" type="button" role="tab"><i class="las la-list"></i> Список</button>
+      </div>
+    {% endif %}
   </div>
-
   <div class="app-header__right">
-    <button class="theme-toggle" id="theme-toggle" type="button"
-            aria-label="Переключить тему" role="switch" aria-checked="false">
-      <span class="theme-toggle__icon theme-toggle__icon--sun">
-        <i class="las la-sun"></i>
-      </span>
-      <span class="theme-toggle__icon theme-toggle__icon--moon">
-        <i class="las la-moon"></i>
-      </span>
+    {% if current_user and current_user.account_role != 'admin' %}
+      <a class="btn btn--ghost btn--sm" href="{{ url_for('contracts.page') }}"><i class="las la-clipboard-list"></i> Мои заявки</a>
+      <a class="btn btn--accent btn--sm" href="{{ url_for('contracts.new_request') }}"><i class="las la-plus"></i> Новая заявка</a>
+    {% endif %}
+    <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Переключить тему" role="switch" aria-checked="false">
+      <span class="theme-toggle__icon theme-toggle__icon--sun"><i class="las la-sun"></i></span>
+      <span class="theme-toggle__icon theme-toggle__icon--moon"><i class="las la-moon"></i></span>
       <span class="theme-toggle__thumb"></span>
     </button>
-
-    <button class="icon-btn" type="button" aria-label="Уведомления">
-      <i class="las la-bell"></i>
-    </button>
-
-    <div class="avatar" aria-hidden="true">ВФ</div>
   </div>
 </header>

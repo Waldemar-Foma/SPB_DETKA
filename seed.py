@@ -21,6 +21,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from app import create_app
 from backend.extensions import db
 from backend.models import Procurement, Supplier, SupplierContract
+from backend.services.demo_users import ensure_demo_users
 
 SEED = 42
 TOTAL_SUPPLIERS = 40
@@ -213,6 +214,7 @@ def seed() -> None:
         suppliers = _seed_suppliers()
 
         db.session.commit()
+        ensure_demo_users()
         print(f"\nГотово: {len(PROCUREMENTS)} закупок, "
               f"{len(suppliers)} контрагентов, "
               f"{SupplierContract.query.count()} контрактов.")
@@ -228,6 +230,10 @@ def _seed_procurements() -> None:
             region=data["region"],
             initial_price=data["initial_price"],
             keywords=data["keywords"],
+            customer_inn="7814000000",
+            customer_kpp="781401001",
+            source_system="АИС ГЗ",
+            procurement_kind=("works" if "ремонт" in data["title"].lower() else "goods"),
         ))
     print(f"  закупок: {len(PROCUREMENTS)}")
 
@@ -278,6 +284,11 @@ def _generate_supplier(index: int, used_inns: set[str]) -> dict:
         "is_verified": random.random() > 0.15,
         "revenue_annual": revenue,
         "okpd2_codes": ",".join(okpd2_codes),
+        "specialization": ", ".join(CONTRACT_SUBJECTS.get(c, "Поставка товаров") for c in okpd2_codes),
+        "primary_okved": "46.69" if company_type == "Дистрибьютор" else "32.50",
+        "is_gisp_manufacturer": company_type == "Производитель",
+        "is_sme": random.random() < 0.45,
+        "data_source": "demo",
         "lat": lat,
         "lon": lon,
     }
@@ -317,6 +328,10 @@ def _seed_contracts(supplier: Supplier, index: int) -> None:
     if total == 0:
         return
 
+    supplier.wins_count = total
+    supplier.participation_count = total + random.randint(0, max(1, total // 2))
+    supplier.unique_won_okpd2 = min(3, len((supplier.okpd2_codes or "").split(",")))
+
     primary_code = (supplier.okpd2_codes or "").split(",")[0]
     subject = CONTRACT_SUBJECTS.get(primary_code, CONTRACT_SUBJECTS["DEFAULT"])
 
@@ -332,6 +347,9 @@ def _seed_contracts(supplier: Supplier, index: int) -> None:
             year=year,
             amount=amount,
             subject=subject,
+            okpd2_code=primary_code,
+            customer_inn="7814000000" if random.random() < 0.25 else "7800000000",
+            is_winner=True,
         ))
 
 

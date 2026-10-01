@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>
+    (() => {
+      const key = 'procurement-theme';
+      let theme = 'light';
+      try {
+        const saved = localStorage.getItem(key);
+        theme = saved === 'dark' || saved === 'light' ? saved : (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      } catch (_) { theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+      document.documentElement.dataset.theme = theme;
+      document.documentElement.style.colorScheme = theme;
+      document.documentElement.style.backgroundColor = theme === 'dark' ? '#121214' : '#f8fafc';
+    })();
+  </script>
+  <title>{{ page_title }} — Подбор контрагентов</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/themes/light.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/themes/dark.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/auth.css') }}">
+</head>
+<body class="auth-page">
+  <main class="auth-shell">
+    <section class="auth-card">
+      <div class="auth-copy">
+        <span class="auth-kicker">Сервис подбора исполнителей</span>
+        <h1>Вход</h1>
+        <p>Войдите как заказчик, чтобы создавать заявки и получать подбор исполнителей.</p>
+      </div>
+      {% if error %}<div class="auth-alert auth-alert--error">{{ error }}</div>{% endif %}
+      <form method="post" class="auth-form">
+        <label><span>E-mail</span><input type="email" name="email" autocomplete="email" required placeholder="name@company.ru"></label>
+        <label><span>Пароль</span><input type="password" name="password" autocomplete="current-password" required></label>
+        <button class="auth-submit" type="submit">Войти</button>
+      </form>
+      <p class="auth-foot">Нет аккаунта? <a href="{{ url_for('auth.register') }}">Зарегистрироваться</a></p>
+    </section>
+  </main>
+</body>
+</html>

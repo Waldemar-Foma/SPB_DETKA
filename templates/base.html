@@ -1,9 +1,27 @@
 <!DOCTYPE html>
-<html lang="ru" data-theme="light">
+<html lang="ru">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{ page_title or 'СПб Контрагенты' }} — СПб · К</title>
+  <script>
+    // Применяем сохранённую тему ДО загрузки CSS, чтобы не было вспышки светлой темы.
+    (() => {
+      const key = 'procurement-theme';
+      let theme = 'light';
+      try {
+        const saved = localStorage.getItem(key);
+        theme = saved === 'dark' || saved === 'light'
+          ? saved
+          : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      } catch (_) {
+        theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+      document.documentElement.dataset.theme = theme;
+      document.documentElement.style.colorScheme = theme;
+      document.documentElement.style.backgroundColor = theme === 'dark' ? '#121214' : '#f8fafc';
+    })();
+  </script>
+  <title>{{ page_title or 'Подбор контрагентов' }} — Подбор контрагентов</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -32,17 +50,20 @@
     'css/components/chart.css',
     'css/components/map.css',
     'css/components/map-view.css',
-    'css/components/view-switcher.css',
     'css/components/skeleton.css',
     'css/components/filters.css',
     'css/components/toast.css',
+    'css/components/view-switcher.css',
     'css/pages/dashboard.css',
-    'css/pages/placeholder.css'
+    'css/pages/placeholder.css',
+    'css/pages/cabinet.css',
+    'css/pages/operations.css',
+    'css/pages/requests.css'
   ] %}
     <link rel="stylesheet" href="{{ url_for('static', filename=sheet) }}">
   {% endfor %}
 </head>
-<body data-page="{{ page_id or '' }}">
+<body data-page="{{ page_id or '' }}" data-user-role="{{ current_user.account_role if current_user else '' }}">
   {% include "_header.html" %}
   <div class="app-shell">
     {% include "_sidebar.html" %}
@@ -52,7 +73,6 @@
     <aside class="app-drawer" id="right-drawer" aria-label="Досье ИИ"></aside>
   </div>
 
-  {% include "partials/_filters_drawer.html" %}
 
   <script src="{{ url_for('static', filename='vendor/chart.umd.min.js') }}"></script>
   <script src="{{ url_for('static', filename='vendor/leaflet/leaflet.js') }}"></script>

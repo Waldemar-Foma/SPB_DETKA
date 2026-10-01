@@ -1,37 +1,13 @@
-<nav class="app-sidebar" aria-label="Основная навигация">
-  <a href="{{ url_for('dashboard.page') }}" class="app-sidebar__logo" aria-label="СПб Контрагенты">
-    <span>СП</span>
-  </a>
-
+<nav class="app-sidebar app-sidebar--no-logo" aria-label="Основная навигация">
   <ul class="app-sidebar__menu">
-    {% set items = [
-      ('chart-pie',     'Дашборд',    'dashboard.page'),
-      ('users',         'Поставщики', 'suppliers_page.page'),
-      ('file-search',   'Анализ ТЗ',  'analysis.page'),
-      ('shield-alt',    'Проверка СБ','security.page'),
-      ('file-contract', 'Контракты',  'contracts.page'),
-      ('chart-bar',     'Отчёты',     'reports.page')
-    ] %}
-    {% for icon_name, label, endpoint in items %}
-      {% set is_active = request.endpoint and request.endpoint.startswith(endpoint.split('.')[0]) %}
-      <li>
-        <a href="{{ url_for(endpoint) }}"
-           class="app-sidebar__link {{ 'is-active' if is_active else '' }}"
-           title="{{ label }}"
-           aria-label="{{ label }}"
-           {{ 'aria-current=page' if is_active else '' }}>
-          <i class="las la-{{ icon_name }}"></i>
-        </a>
-      </li>
-    {% endfor %}
+    {% if current_user and current_user.account_role == 'admin' %}
+      <li><a href="{{ url_for('admin.page') }}" class="app-sidebar__link {{ 'is-active' if page_id == 'admin' else '' }}" title="Администрирование"><i class="las la-tools"></i></a></li>
+    {% else %}
+      <li><a href="{{ url_for('contracts.page') }}" class="app-sidebar__link {{ 'is-active' if page_id in ['requests','request-detail','request-new'] else '' }}" title="Мои заявки"><i class="las la-clipboard-list"></i></a></li>
+      <li><a href="{{ url_for('security.page') }}" class="app-sidebar__link {{ 'is-active' if page_id == 'security' else '' }}" title="Проверка СБ"><i class="las la-shield-alt"></i></a></li>
+    {% endif %}
   </ul>
-
   <div class="app-sidebar__bottom">
-    <button class="app-sidebar__link" type="button" title="Настройки" aria-label="Настройки">
-      <i class="las la-cog"></i>
-    </button>
-    <button class="app-sidebar__link" type="button" title="Выход" aria-label="Выход">
-      <i class="las la-sign-out-alt"></i>
-    </button>
+    {% if current_user %}<a class="app-sidebar__link" href="{{ url_for('auth.logout') }}" title="Выйти"><i class="las la-sign-out-alt"></i></a>{% endif %}
   </div>
 </nav>

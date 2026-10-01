@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>
+    (() => {
+      const key = 'procurement-theme';
+      let theme = 'light';
+      try {
+        const saved = localStorage.getItem(key);
+        theme = saved === 'dark' || saved === 'light' ? saved : (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      } catch (_) { theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+      document.documentElement.dataset.theme = theme;
+      document.documentElement.style.colorScheme = theme;
+      document.documentElement.style.backgroundColor = theme === 'dark' ? '#121214' : '#f8fafc';
+    })();
+  </script>
+  <title>{{ page_title }} — Подбор контрагентов</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/themes/light.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/themes/dark.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/auth.css') }}">
+</head>
+<body class="auth-page">
+  <main class="auth-shell auth-shell--wide">
+    <section class="auth-card">
+      <div class="auth-copy">
+        <span class="auth-kicker">Регистрация заказчика</span>
+        <h1>Создать аккаунт</h1>
+        <p>Сервис предназначен для заказчиков: после входа вы создаёте заявку, получаете топ исполнителей и сами выбираете подходящую компанию.</p>
+      </div>
+      {% if errors %}<div class="auth-alert auth-alert--error">{% for item in errors %}<div>{{ item }}</div>{% endfor %}</div>{% endif %}
+      <form method="post" class="auth-form auth-form--grid">
+        <label><span>Имя и фамилия</span><input name="full_name" required value="{{ values.full_name }}" placeholder="Иван Петров"></label>
+        <label><span>E-mail</span><input type="email" name="email" required value="{{ values.email }}" placeholder="name@company.ru"></label>
+        <label><span>ИНН организации</span><input name="organization_inn" inputmode="numeric" required value="{{ values.organization_inn }}" placeholder="10 или 12 цифр"></label>
+        <label><span>Название организации</span><input name="organization_name" value="{{ values.organization_name }}" placeholder="ООО «Компания»"></label>
+        <label><span>Пароль</span><input type="password" name="password" autocomplete="new-password" required placeholder="Минимум 8 символов"></label>
+        <label><span>Повторите пароль</span><input type="password" name="password2" autocomplete="new-password" required></label>
+        <button class="auth-submit auth-field--full" type="submit">Создать аккаунт</button>
+      </form>
+      <p class="auth-foot">Уже есть аккаунт? <a href="{{ url_for('auth.login') }}">Войти</a></p>
+    </section>
+  </main>
+</body>
+</html>

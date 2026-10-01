@@ -1,22 +1,82 @@
 {% extends "base.html" %}
 
 {% block main %}
-  {% with title='Проверка СБ',
-          subtitle='Верификация контрагента по базам ФНС, ФССП, арбитража',
-          action_label='Запустить проверку',
-          action_icon='shield-alt' %}
-    {% include "partials/_page_header.html" %}
-  {% endwith %}
+  <header class="page-header glass">
+    <div class="page-header__text"><h2 class="page-header__title">Проверка контрагента</h2><p class="page-header__subtitle">Показываем только реально доступные признаки. ФНС, ФССП и арбитраж не имитируются: пока интеграции нет, они помечены как «не подключено».</p></div>
+    <form class="ops-inline-search" method="get"><input name="inn" inputmode="numeric" value="{{ requested_inn }}" placeholder="ИНН контрагента"><button class="btn btn--accent" type="submit"><i class="las la-shield-alt"></i> Проверить</button></form>
+  </header>
 
-  <section class="placeholder glass">
-    <div class="placeholder__icon"><i class="las la-shield-alt"></i></div>
-    <h3 class="placeholder__title">Модуль проверки безопасности</h3>
-    <p class="placeholder__text">
-      Проверка судебных дел, исполнительных производств, налоговых
-      задолженностей и аффилированности компании.
-    </p>
-    <button class="btn btn--accent" type="button">
-      <i class="las la-play"></i> Запустить проверку
-    </button>
-  </section>
+  {% if requested_inn and not supplier %}
+    <section class="ops-empty glass"><i class="las la-search"></i><h3>ИНН {{ requested_inn }} не найден</h3><p>Контрагент отсутствует в текущей локальной базе. Сначала импортируйте реальные данные или проверьте ИНН.</p></section>
+  {% elif supplier %}
+    <section class="ops-kpis">
+      <article class="cabinet-stat"><span>Компания</span><strong class="ops-kpi-small">{{ supplier.name }}</strong></article>
+      <article class="cabinet-stat"><span>Роль по подтверждаемым признакам</span><strong class="ops-kpi-small">{{ registry_role }}</strong></article>
+      <article class="cabinet-stat"><span>Полнота локального профиля</span><strong>{{ data_completeness }}%</strong></article>
+      <article class="cabinet-stat"><span>История</span><strong>{{ supplier.participation_count }} / {{ supplier.wins_count }}</strong><span>участий / побед</span></article>
+    </section>
+
+    <section class="panel glass ops-panel">
+      <header class="panel__head"><div><h2 class="panel__title">Проверки</h2><p class="panel__subtitle">Это контроль качества и происхождения данных, а не юридическое заключение о благонадёжности.</p></div></header>
+      <div class="ops-checks">
+        {% for check in checks %}
+          <article class="ops-check ops-check--{{ check.status }}">
+            <span class="ops-check__icon"><i class="las {{ 'la-check-circle' if check.status == 'ok' else 'la-exclamation-circle' if check.status == 'warn' else 'la-minus-circle' }}"></i></span>
+            <div><strong>{{ check.name }}</strong><span>{{ check.value }}</span><small>{{ check.source }}</small></div>
+          </article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="panel glass ops-panel security-reviews">
+      <header class="panel__head">
+        <div>
+          <h2 class="panel__title">Отзывы заказчиков</h2>
+          <p class="panel__subtitle">Только отзывы пользователей сервиса после завершённых заказов с этим исполнителем.</p>
+        </div>
+        {% if reviews_summary.count %}
+          <span class="security-reviews__rating"><i class="las la-star"></i> {{ reviews_summary.avg }}/5 · {{ reviews_summary.count }}</span>
+        {% endif %}
+      </header>
+
+      {% if reviews_summary.count %}
+        <div class="security-review-metrics">
+          <div><span>Общая оценка</span><strong>{{ reviews_summary.avg }}/5</strong></div>
+          <div><span>Качество</span><strong>{{ reviews_summary.quality if reviews_summary.quality is not none else '—' }}</strong></div>
+          <div><span>Сроки</span><strong>{{ reviews_summary.deadlines if reviews_summary.deadlines is not none else '—' }}</strong></div>
+          <div><span>Коммуникация</span><strong>{{ reviews_summary.communication if reviews_summary.communication is not none else '—' }}</strong></div>
+        </div>
+
+        <div class="security-review-list">
+          {% for review in reviews %}
+            <article class="security-review-card">
+              <div class="security-review-card__head">
+                <div>
+                  <strong>{{ review.user.organization_name or 'Заказчик сервиса' }}</strong>
+                  <span>{{ review.created_at.strftime('%d.%m.%Y') }}</span>
+                </div>
+                <span class="security-review-card__score"><i class="las la-star"></i> {{ review.rating }}/5</span>
+              </div>
+              {% if review.comment %}<p>{{ review.comment }}</p>{% else %}<p class="ops-muted">Без текстового комментария.</p>{% endif %}
+              {% if review.quality_rating or review.deadlines_rating or review.communication_rating %}
+                <div class="security-review-card__details">
+                  {% if review.quality_rating %}<span>Качество <b>{{ review.quality_rating }}/5</b></span>{% endif %}
+                  {% if review.deadlines_rating %}<span>Сроки <b>{{ review.deadlines_rating }}/5</b></span>{% endif %}
+                  {% if review.communication_rating %}<span>Коммуникация <b>{{ review.communication_rating }}/5</b></span>{% endif %}
+                </div>
+              {% endif %}
+            </article>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="ops-empty ops-empty--compact">
+          <i class="las la-comment-alt"></i>
+          <h3>Отзывов пока нет</h3>
+          <p>Отзыв появляется здесь только после того, как заказчик завершил заявку и оценил исполнителя.</p>
+        </div>
+      {% endif %}
+    </section>
+  {% else %}
+    <section class="ops-empty glass"><i class="las la-shield-alt"></i><h3>Введите ИНН</h3><p>Введите ИНН компании из локальной базы, чтобы посмотреть доступные проверяемые признаки.</p></section>
+  {% endif %}
 {% endblock %}

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block main %}
+<section class="request-detail-page">
+  {% with messages = get_flashed_messages(with_categories=true) %}{% for category, message in messages %}<div class="cabinet-flash cabinet-flash--{{ category }}">{{ message }}</div>{% endfor %}{% endwith %}
+
+  <div class="request-detail__head">
+    <div><a class="request-back" href="{{ url_for('contracts.page') }}">← Мои заявки</a><h1>{{ procurement.title }}</h1><span class="request-status request-status--{{ procurement.status }}">{{ status_labels.get(procurement.status, procurement.status) }}</span></div>
+    <div class="request-detail__actions">
+      {% if procurement.status == 'matching' and not procurement.selected_supplier_inn %}<a class="btn btn--ghost" href="{{ url_for('dashboard.page', procurement=procurement.procurement_number) }}">Подобрать исполнителя</a>{% endif %}
+      <form method="post" action="{{ url_for('contracts.delete', number=procurement.procurement_number) }}" onsubmit="return confirm('Удалить заявку из рабочего списка?')"><button class="btn btn--ghost" type="submit">Удалить</button></form>
+    </div>
+  </div>
+
+  <div class="request-detail-grid">
+    <article class="panel request-detail-card">
+      <header class="panel__head"><div><h2 class="panel__title">Заказ</h2></div></header>
+      <div class="request-detail-copy"><p>{{ procurement.subject }}</p><dl><div><dt>Регион</dt><dd>{{ procurement.delivery_region or procurement.region }}</dd></div>{% if procurement.initial_price %}<div><dt>Бюджет</dt><dd>{{ '{:,.0f}'.format(procurement.initial_price|float).replace(',', ' ') }} ₽</dd></div>{% endif %}{% if procurement.okpd2_code and procurement.okpd2_code != 'AUTO' %}<div><dt>ОКПД2</dt><dd>{{ procurement.okpd2_code }}</dd></div>{% endif %}<div><dt>Создана</dt><dd>{{ procurement.created_at.strftime('%d.%m.%Y %H:%M') }}</dd></div></dl></div>
+    </article>
+
+    <article class="panel request-detail-card">
+      <header class="panel__head"><div><h2 class="panel__title">Исполнитель</h2><p class="panel__subtitle">Контакты открываются после вашего выбора.</p></div></header>
+      {% if supplier %}
+      <div class="request-selected-company">
+        <h3>{{ supplier.name }}</h3><p>ИНН {{ supplier.inn }} · {{ supplier.region }}</p>
+        <div class="request-contacts">
+          <div><i class="las la-phone"></i><span>{{ supplier.phone or 'Телефон не найден в открытых данных' }}</span></div>
+          <div><i class="las la-envelope"></i><span>{{ supplier.email or 'E-mail не найден в открытых данных' }}</span></div>
+          <div><i class="las la-globe"></i>{% if supplier.website %}<a href="{{ supplier.website }}" target="_blank" rel="noopener">{{ supplier.website }}</a>{% else %}<span>Сайт не найден</span>{% endif %}</div>
+          <div><i class="las la-map-marker"></i><span>{{ supplier.address or supplier.region }}</span></div>
+        </div>
+        {% if procurement.status == 'selected' %}<form method="post" action="{{ url_for('contracts.complete', number=procurement.procurement_number) }}"><button class="btn btn--accent" type="submit">Заказ завершён</button></form>{% endif %}
+      </div>
+      {% else %}<div class="request-detail-copy"><p class="ops-muted">Исполнитель ещё не выбран.</p><a class="btn btn--accent" href="{{ url_for('dashboard.page', procurement=procurement.procurement_number) }}">Посмотреть топ-5</a></div>{% endif %}
+    </article>
+  </div>
+
+  {% if procurement.status == 'completed' and supplier %}
+  <article class="panel request-review-panel">
+    <header class="panel__head"><div><h2 class="panel__title">Отзыв об исполнителе</h2><p class="panel__subtitle">Отзывы влияют на будущие рекомендации только после реально завершённого заказа.</p></div></header>
+    {% if review %}
+      <div class="request-detail-copy"><strong>{{ review.rating }}/5</strong><p>{{ review.comment or 'Комментарий не оставлен.' }}</p></div>
+    {% else %}
+      <form method="post" action="{{ url_for('contracts.add_review', number=procurement.procurement_number) }}" class="ops-form ops-form--grid">
+        <label class="ops-field"><span>Общая оценка</span><select name="rating" required><option value="">—</option>{% for i in range(5,0,-1) %}<option value="{{ i }}">{{ i }} / 5</option>{% endfor %}</select></label>
+        <label class="ops-field"><span>Качество</span><select name="quality_rating"><option value="">—</option>{% for i in range(5,0,-1) %}<option value="{{ i }}">{{ i }}</option>{% endfor %}</select></label>
+        <label class="ops-field"><span>Сроки</span><select name="deadlines_rating"><option value="">—</option>{% for i in range(5,0,-1) %}<option value="{{ i }}">{{ i }}</option>{% endfor %}</select></label>
+        <label class="ops-field"><span>Коммуникация</span><select name="communication_rating"><option value="">—</option>{% for i in range(5,0,-1) %}<option value="{{ i }}">{{ i }}</option>{% endfor %}</select></label>
+        <label class="ops-field ops-field--wide"><span>Подробности</span><textarea name="comment" rows="5" placeholder="Что прошло хорошо, были ли проблемы со сроками, качеством или связью?"></textarea></label>
+        <div class="ops-form__actions"><button class="btn btn--accent" type="submit">Опубликовать отзыв</button></div>
+      </form>
+    {% endif %}
+  </article>
+  {% endif %}
+</section>
+{% endblock %}
