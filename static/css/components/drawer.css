@@ -246,17 +246,17 @@
     height: 200px;
     border-radius: var(--radius-md);
     overflow: hidden;
-    background: #0a0a0c;
+    background: #e5e7eb;
     border: 1px solid var(--color-border-soft);
   }
 
-  /* Тёмные тайлы OSM: обесцвечивание и инверсия яркости */
+  /* Тайлы OSM всегда показываются в исходных цветах, независимо от темы. */
   .geo-check__map .leaflet-tile {
-    filter: brightness(.52) contrast(.95) saturate(.35) invert(1) hue-rotate(180deg);
+    filter: none;
   }
 
   .geo-check__map .leaflet-container {
-    background: #0a0a0c;
+    background: #e5e7eb;
     font-family: var(--font-sans);
   }
 
@@ -479,3 +479,54 @@
   font-size: 15px;
   margin-top: 2px;
 }
+
+.selection-confirmation {
+  display: none;
+  gap: 10px;
+  align-items: flex-start;
+  margin-bottom: 10px;
+  padding: 11px 12px;
+  border-radius: 12px;
+  background: rgba(18,183,106,.10);
+  border: 1px solid rgba(18,183,106,.22);
+  color: var(--color-text);
+}
+.selection-confirmation.is-visible { display: flex; }
+.selection-confirmation > i { color: #12b76a; font-size: 20px; margin-top: 1px; }
+.selection-confirmation div { display: grid; gap: 3px; }
+.selection-confirmation strong { font-size: 13px; color: var(--color-text-strong); }
+.selection-confirmation span { font-size: 12px; color: var(--color-text-muted); line-height: 1.4; }
+.selection-confirmation__link {
+  display: inline-block;
+  margin-top: 5px;
+  color: var(--color-accent);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.selection-confirmation__link:hover { text-decoration: underline; }
+
+.ai-explanation-source {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 2px 0 10px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: .01em;
+  border: 1px solid var(--border-subtle, rgba(128,128,128,.22));
+  color: var(--text-secondary, #747b86);
+  background: var(--surface-soft, rgba(128,128,128,.08));
+}
+.ai-explanation-source.is-ai::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: .7;
+}
+.ai-explanation-source.is-fallback { opacity: .82; }

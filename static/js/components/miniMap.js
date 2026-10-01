@@ -20,9 +20,9 @@ export function MiniMap(coords) {
       maxZoom: 19,
     }).addTo(map);
 
-    const spb = [59.9386, 30.3141];
+    const cityCenter = [59.9386, 30.3141];
 
-    window.L.polyline([[coords.lat, coords.lon], spb], {
+    window.L.polyline([[coords.lat, coords.lon], cityCenter], {
       color: '#ff4e64',
       weight: 2,
       dashArray: '4 6',
@@ -37,7 +37,7 @@ export function MiniMap(coords) {
       weight: 2,
     }).addTo(map);
 
-    window.L.circleMarker(spb, {
+    window.L.circleMarker(cityCenter, {
       radius: 5,
       color: '#ffffff',
       fillColor: '#ffffff',

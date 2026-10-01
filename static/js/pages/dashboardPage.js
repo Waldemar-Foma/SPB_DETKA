@@ -1,129 +1,110 @@
-import { $ } from '../utils/dom.js';
-import { formatNumber } from '../utils/format.js';
+import { $, h, icon } from '../utils/dom.js';
 import { analyzeProcurement, getSuppliersFor } from '../api/procurement.js';
-import { renderShortlist, renderEmptyTable, renderLoadingRows }
-  from '../components/shortlistTable.js';
 import { initMapView } from '../components/mapView.js';
 import { openDrawer } from '../components/drawer.js';
+import { renderRelevanceChart, renderRegionsChart, renderTypesChart } from '../components/relevanceWidgets.js';
 import { toast } from '../components/toast.js';
-import { initViewMode } from '../utils/viewMode.js';
-import { initDragWidgets } from '../utils/dragWidgets.js';
-import {
-  renderRelevanceChart,
-  renderRegionsChart,
-  renderTypesChart,
-} from '../components/relevanceWidgets.js';
-
-const DEFAULT_QUERY = 'Поставка медицинского оборудования';
-const PAGE_SIZE = 50;
 
 export async function initDashboardPage() {
-  const state = { procurement: null, items: [], meta: null };
+  // Если пользователь вернулся кнопкой «Назад» после выбора исполнителя,
+  // браузер может восстановить старую карту из bfcache. Принудительная
+  // перезагрузка заставит сервер проверить актуальный статус заявки и
+  // перенаправить на карточку заказа.
+  window.addEventListener('pageshow', (event) => {
+    if (event.persisted) window.location.reload();
+  }, { once: true });
 
-  await loadProcurement(state);
-  await loadFeed(state);
-
-  initViewMode();
-  initDragWidgets();
-  bindAiSummary();
-}
-
-async function loadProcurement(state) {
-  try {
-    state.procurement = await analyzeProcurement(DEFAULT_QUERY);
-  } catch (error) {
-    toast('Не удалось загрузить закупку: ' + error.message, 'error');
-    throw error;
+  const params = new URLSearchParams(location.search);
+  const procurementId = params.get('procurement');
+  if (!procurementId) { location.replace('/contracts/'); return; }
+  const state = { procurement: null, items: [], types: new Set() };
+  state.procurement = await analyzeProcurement(procurementId);
+  if (state.procurement.selected_supplier_inn || state.procurement.status !== 'matching') {
+    window.location.replace(`/contracts/${encodeURIComponent(state.procurement.procurement_id)}`);
+    return;
   }
+  renderContext(state.procurement);
+  bindFilters(state);
+  bindSelection(state);
+  await loadFeed(state);
 }
 
 async function loadFeed(state) {
-  const tbody = $('#shortlist-body');
-  if (tbody) {
-    tbody.innerHTML = '';
-    renderLoadingRows(tbody, 4);
-  }
-
+  const typeParam = [...state.types].join(',');
   try {
-    const { items, meta } = await getSuppliersFor(state.procurement.procurement_id, {
-      limit: PAGE_SIZE,
-      offset: 0,
-    });
-
-    state.items = items;
-    state.meta = meta;
-
-    renderMetrics(items, meta);
-    renderAiSummary(state.procurement, items);
-    renderWidgetCharts(items);
-    initMapView(items, (inn) => openDrawer(inn, state.procurement));
-
-    if (tbody) {
-      tbody.innerHTML = '';
-      if (!items.length) renderEmptyTable(tbody);
-      else renderShortlist(tbody, items, (inn) => openDrawer(inn, state.procurement));
-    }
-  } catch (error) {
-    console.error('[dashboard] Ошибка загрузки:', error);
-    toast('Ошибка загрузки: ' + error.message, 'error');
-  }
+    const payload = await getSuppliersFor(state.procurement.procurement_id, { company_types: typeParam });
+    state.items = payload.items || [];
+    state.procurement.selected_supplier_inn = payload.meta?.selected_supplier_inn || null;
+    state.procurement.selected_supplier_name = payload.meta?.selected_supplier_name || null;
+    renderMetrics(payload.meta, state.items);
+    renderSummary(state);
+    renderList(state);
+    renderRelevanceChart(state.items); renderRegionsChart(state.items); renderTypesChart(state.items);
+    initMapView(state.items, (inn) => openDrawer(inn, state.procurement), state.procurement.selected_supplier_inn);
+    if (!state.items.length) toast('По выбранным типам компаний подходящих кандидатов не найдено.', 'info');
+  } catch (e) { toast('Не удалось построить подбор: ' + e.message, 'error'); }
 }
 
-function renderMetrics(items, meta) {
-  const pool = (meta?.total ?? items.length) * 6;
-  const shortlist = items.length;
-  const local = items.filter((i) =>
-    i.region === 'Санкт-Петербург' || i.region === 'Ленинградская область'
-  ).length;
-  const avg = shortlist
-    ? Math.round(items.reduce((s, i) => s + i.score, 0) / shortlist)
-    : 0;
-
-  setText('#kpi-pool', formatNumber(pool));
-  setText('#kpi-shortlist', formatNumber(shortlist));
-  setText('#kpi-local', formatNumber(local));
-  setText('#kpi-reliability', `${avg}/100`);
-  setText('#panel-count', formatNumber(shortlist));
+function renderContext(p) {
+  $('#procurement-current-title').textContent = p.title || 'Заявка';
+  const okpd = p.okpd2 && p.okpd2 !== 'AUTO' ? ` · ОКПД2 ${p.okpd2}` : '';
+  $('#procurement-current-meta').textContent = `${p.delivery_region || p.region || ''}${okpd}`;
 }
 
-const setText = (sel, v) => {
-  const el = $(sel);
-  if (el) el.textContent = v;
-};
-
-function renderWidgetCharts(items) {
-    renderRelevanceChart(items);
-    renderRegionsChart(items);
-    renderTypesChart(items);
+function renderMetrics(meta, items) {
+  $('#kpi-pool').textContent = Number(meta?.full_pool || 0).toLocaleString('ru-RU');
+  $('#kpi-shortlist').textContent = String(items.length);
+  const avg = items.length ? Math.round(items.reduce((s,x)=>s+(x.score||0),0)/items.length) : 0;
+  $('#kpi-reliability').textContent = `${avg}%`;
 }
 
-function renderAiSummary(procurement, items) {
-  const host = $('#ai-summary-text');
-  if (!host) return;
-
-  const shortlist = items.length;
-  const locals = items.filter((i) =>
-    i.region === 'Санкт-Петербург' || i.region === 'Ленинградская область'
-  ).length;
-  const producers = items.filter((i) => i.company_type === 'Производитель').length;
-  const top = items[0]?.score ?? 0;
-
-  host.textContent =
-    `ИИ проанализировал ${formatNumber(shortlist * 48)} компаний по ОКПД2 ${procurement.okpd2} ` +
-    `в регионе ${procurement.region}. Сформирован оптимальный шорт-лист из ${shortlist} исполнителей. ` +
-    `Локальных (СПб и ЛО) — ${locals}, прямых производителей — ${producers}. ` +
-    `Топ-компания показывает индекс совпадения ${top}%.`;
+function renderSummary(state) {
+  const host=$('#ai-summary-text'); if(!host)return;
+  if(!state.items.length){ host.textContent='Измените фильтр типов компаний или уточните описание заявки.'; return; }
+  const best=state.items[0];
+  const filter=state.types.size ? ` с учётом фильтра «${[...state.types].join(', ')}»` : '';
+  host.textContent=`Найден топ-${state.items.length}${filter}. Лучшее совпадение — ${best.score}%. Нажмите на компанию, чтобы увидеть простое объяснение, отзывы и возможные ограничения.`;
 }
 
-function bindAiSummary() {
-  const toggle = $('#ai-summary-toggle');
-  const details = $('#ai-summary-details');
-  if (!toggle || !details) return;
+function renderList(state) {
+  const host=$('#top5-list'); if(!host)return; host.innerHTML='';
+  if(!state.items.length){ host.append(h('div',{class:'top5-empty'},'Нет компаний для текущего фильтра.')); return; }
+  state.items.forEach((item,index)=>host.append(topCard(item,index+1,()=>openDrawer(item.inn,state.procurement),state.procurement.selected_supplier_inn)));
+}
 
-  toggle.addEventListener('click', () => {
-    const expanded = toggle.getAttribute('aria-expanded') === 'true';
-    toggle.setAttribute('aria-expanded', String(!expanded));
-    toggle.textContent = !expanded ? 'Скрыть' : 'Показать подробнее';
-    details.hidden = expanded;
+function topCard(item, n, open, selectedInn) {
+  const m=item.metrics||{}; const selected=String(selectedInn||'')===String(item.inn);
+  const rating=m.reviews_count ? `${m.rating}/5 · ${m.reviews_count} отзыв.` : 'Отзывов пока нет';
+  const win=m.win_rate == null ? 'нет данных' : `${m.win_rate}%`;
+  return h('article',{class:`top5-card ${selected?'is-selected':''}`,onClick:open},
+    h('div',{class:'top5-card__rank'},String(n)),
+    h('div',{class:'top5-card__main'},
+      h('div',{class:'top5-card__title'},h('strong',{},item.name),selected?h('span',{class:'badge badge--local'},'Выбран'):null),
+      h('div',{class:'top5-card__meta'},`${item.company_type} · ${item.region}`),
+      h('div',{class:'top5-card__metrics'},
+        miniMetric('Совпадение',`${item.score}%`), miniMetric('Win rate',win), miniMetric('Отзывы',rating), miniMetric('Логистика',`${m.geography??'—'}%`)
+      ),
+      item.workload_warning?h('div',{class:'top5-card__warning'},icon('exclamation-triangle'),item.workload_warning):null,
+    ),
+    h('button',{class:'btn btn--ghost btn--sm',type:'button',onClick:(e)=>{e.stopPropagation();open();}},'Подробнее')
+  );
+}
+const miniMetric=(label,value)=>h('span',{class:'top5-metric'},h('small',{},label),h('b',{},value));
+
+function bindFilters(state) {
+  const modal=$('#match-filter');
+  const open=()=>{ modal.hidden=false; };
+  $('#feed-open-filters')?.addEventListener('click',open); $('#list-open-filters')?.addEventListener('click',open);
+  $('#match-filter-close')?.addEventListener('click',()=>modal.hidden=true);
+  $('#match-filter-all')?.addEventListener('click',async()=>{ modal.querySelectorAll('input[type=checkbox]').forEach(x=>x.checked=false); state.types.clear(); modal.hidden=true; await loadFeed(state); });
+  $('#match-filter-apply')?.addEventListener('click',async()=>{ state.types=new Set([...modal.querySelectorAll('input[type=checkbox]:checked')].map(x=>x.value)); modal.hidden=true; await loadFeed(state); });
+  modal?.addEventListener('click',(e)=>{if(e.target===modal)modal.hidden=true;});
+}
+
+function bindSelection(state) {
+  document.addEventListener('procurement:selection-changed', async (event)=>{
+    const d=event.detail||{}; if(d.procurement_id!==state.procurement.procurement_id)return;
+    state.procurement.selected_supplier_inn=d.selected_supplier_inn; state.procurement.selected_supplier_name=d.selected_supplier_name;
+    await loadFeed(state);
   });
 }

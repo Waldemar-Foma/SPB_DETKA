@@ -1,51 +1,29 @@
 /**
- * Перетаскивание плавающих виджетов дашборда.
+ * Перетаскивание плавающих карточек прямо поверх карты.
  *
- * - Позиции хранятся в localStorage: { widget-key: { left, top } }.
- * - Drag активен только в режиме `widgets`.
- * - При сохранении и восстановлении проверяется наложение (collision):
- *   если два виджета пересекаются, «новый» сдвигается вниз до
- *   ближайшего свободного места.
+ * В позиционирование входят и аналитические виджеты, и карточка
+ * «Подбор по заявке». Позиции сохраняются локально в браузере.
  */
-const STORAGE_KEY = 'spb-widget-positions';
-const GAP = 16;   // отступ между виджетами при разрешении коллизий
+const STORAGE_KEY = 'procurement-widget-positions-v3';
 
 export function initDragWidgets(containerSelector = '.app-main') {
+  if (document.body.dataset.page !== 'dashboard') return;
   const container = document.querySelector(containerSelector);
   if (!container) return;
 
-  const widgets = Array.from(container.querySelectorAll('.dash-widget[data-widget]'));
-  if (!widgets.length) return;
+  const widgets = [
+    ...container.querySelectorAll('.dash-widget[data-widget], .dash-context[data-widget]'),
+  ];
+  const saved = read();
 
-  // 1. Восстановили сохранённые позиции
-  const saved = readPositions();
-  widgets.forEach((w) => applySavedPosition(w, saved));
+  widgets.forEach((widget) => restore(widget, saved));
+  widgets.forEach((widget) => bind(widget, container, widgets));
+  sync(widgets);
 
-  // 2. Разрешили коллизии (в том числе если пользователь сохранил плохие)
-  snapCollisions(widgets);
-
-  // 3. Навесили drag
-  widgets.forEach((w) => bindDrag(w, container));
-
-  // 4. Реакция на режим
-  syncDragMode(widgets);
-  document.addEventListener('view:changed', () => syncDragMode(widgets));
+  document.addEventListener('view:changed', () => sync(widgets));
 }
 
-// --- Позиции --------------------------------------------------------------
-
-function applySavedPosition(widget, positions) {
-  const key = widget.dataset.widget;
-  if (!key || !positions[key]) return;
-
-  const { left, top } = positions[key];
-  if (typeof left === 'number') widget.style.left = `${left}px`;
-  if (typeof top === 'number') widget.style.top = `${top}px`;
-  widget.style.right = 'auto';
-  widget.style.bottom = 'auto';
-}
-
-function readPositions() {
+function read() {
   try {
     return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
   } catch {
@@ -53,167 +31,86 @@ function readPositions() {
   }
 }
 
-function savePositions(widgets) {
-  const out = {};
-  widgets.forEach((w) => {
-    const key = w.dataset.widget;
-    if (!key) return;
-    const rect = w.getBoundingClientRect();
-    const parent = w.offsetParent || document.body;
-    const parentRect = parent.getBoundingClientRect();
-    out[key] = {
-      left: Math.round(rect.left - parentRect.left),
-      top:  Math.round(rect.top  - parentRect.top),
+function restore(widget, saved) {
+  const position = saved[widget.dataset.widget];
+  if (!position) return;
+  widget.style.left = `${position.left}px`;
+  widget.style.top = `${position.top}px`;
+  widget.style.right = 'auto';
+  widget.style.bottom = 'auto';
+}
+
+function save(widgets, container) {
+  const containerRect = container.getBoundingClientRect();
+  const positions = {};
+  widgets.forEach((widget) => {
+    const rect = widget.getBoundingClientRect();
+    positions[widget.dataset.widget] = {
+      left: Math.round(rect.left - containerRect.left),
+      top: Math.round(rect.top - containerRect.top),
     };
   });
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(out));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(positions));
 }
 
-// --- Разрешение коллизий --------------------------------------------------
-
-/**
- * Проходит по виджетам и, если они пересекаются, сдвигает нижний вниз.
- * Работает итеративно, пока все не разойдутся.
- */
-function snapCollisions(widgets) {
-  const container = widgets[0]?.offsetParent;
-  if (!container) return;
-
-  // Сортируем по «верхнему левому углу» — те, что выше и левее, фиксируются первыми
-  const ordered = [...widgets].sort((a, b) => {
-    const ra = a.getBoundingClientRect();
-    const rb = b.getBoundingClientRect();
-    if (Math.abs(ra.top - rb.top) < 20) return ra.left - rb.left;
-    return ra.top - rb.top;
-  });
-
-  const placed = [];
-
-  for (const w of ordered) {
-    const rect = w.getBoundingClientRect();
-    const parentRect = container.getBoundingClientRect();
-
-    let left = rect.left - parentRect.left;
-    let top  = rect.top  - parentRect.top;
-
-    // Ищем ближайшее свободное место, двигая вниз
-    let safety = 0;
-    while (collidesWithAny({ left, top, w: w.offsetWidth, h: w.offsetHeight }, placed) && safety < 50) {
-      top += GAP;
-      safety++;
-    }
-
-    w.style.left = `${left}px`;
-    w.style.top  = `${top}px`;
-    w.style.right = 'auto';
-    w.style.bottom = 'auto';
-
-    placed.push({ left, top, w: w.offsetWidth, h: w.offsetHeight });
-  }
+function sync(widgets) {
+  const enabled = document.body.dataset.view === 'map';
+  widgets.forEach((widget) => widget.classList.toggle('is-drag-enabled', enabled));
 }
 
-function collidesWithAny(box, others) {
-  return others.some((o) => rectsOverlap(
-    { left: box.left, top: box.top, right: box.left + box.w, bottom: box.top + box.h },
-    { left: o.left, top: o.top, right: o.left + o.w, bottom: o.top + o.h },
-  ));
-}
+function bind(widget, container, widgets) {
+  const handle = widget.querySelector('.dash-context__drag-handle')
+    || widget.querySelector('.dash-widget__head')
+    || widget;
 
-function rectsOverlap(a, b) {
-  return !(a.right + GAP <= b.left
-        || b.right + GAP <= a.left
-        || a.bottom + GAP <= b.top
-        || b.bottom + GAP <= a.top);
-}
+  let dragging = false;
+  let startX = 0;
+  let startY = 0;
+  let startLeft = 0;
+  let startTop = 0;
 
-// --- Drag -----------------------------------------------------------------
+  handle.addEventListener('pointerdown', (event) => {
+    if (document.body.dataset.view !== 'map') return;
+    if (event.button !== undefined && event.button !== 0) return;
+    if (event.target.closest('button, a, input, select, textarea, label')) return;
 
-function bindDrag(widget, container) {
-  const handle = widget.querySelector('.dash-widget__head') || widget;
-  let startX = 0, startY = 0, startLeft = 0, startTop = 0;
-  let isDragging = false;
-
-  handle.addEventListener('pointerdown', (e) => {
-    if (document.body.dataset.view !== 'widgets') return;
-    if (e.target.closest('button')) return;
-
-    isDragging = true;
+    dragging = true;
     widget.classList.add('is-dragging');
-    handle.setPointerCapture?.(e.pointerId);
+    document.body.classList.add('is-dragging-widget');
+    handle.setPointerCapture?.(event.pointerId);
 
     const rect = widget.getBoundingClientRect();
-    const parentRect = container.getBoundingClientRect();
-
-    startX = e.clientX;
-    startY = e.clientY;
-    startLeft = rect.left - parentRect.left;
-    startTop  = rect.top  - parentRect.top;
-
-    e.preventDefault();
+    const containerRect = container.getBoundingClientRect();
+    startX = event.clientX;
+    startY = event.clientY;
+    startLeft = rect.left - containerRect.left;
+    startTop = rect.top - containerRect.top;
+    event.preventDefault();
   });
 
-  handle.addEventListener('pointermove', (e) => {
-    if (!isDragging) return;
+  handle.addEventListener('pointermove', (event) => {
+    if (!dragging) return;
 
-    const dx = e.clientX - startX;
-    const dy = e.clientY - startY;
+    let left = startLeft + event.clientX - startX;
+    let top = startTop + event.clientY - startY;
 
-    let nextLeft = startLeft + dx;
-    let nextTop  = startTop  + dy;
+    left = Math.max(8, Math.min(container.clientWidth - widget.offsetWidth - 8, left));
+    top = Math.max(8, Math.min(container.clientHeight - widget.offsetHeight - 8, top));
 
-    const cw = container.clientWidth;
-    const ch = container.clientHeight;
-    const ww = widget.offsetWidth;
-    const wh = widget.offsetHeight;
-
-    nextLeft = Math.max(8, Math.min(cw - ww - 8, nextLeft));
-    nextTop  = Math.max(8, Math.min(ch - wh - 8, nextTop));
-
-    widget.style.left = `${nextLeft}px`;
-    widget.style.top  = `${nextTop}px`;
+    widget.style.left = `${left}px`;
+    widget.style.top = `${top}px`;
     widget.style.right = 'auto';
     widget.style.bottom = 'auto';
-
-    // Подсветка, если накладывается на другого
-    const overlaps = isOverlappingOthers(widget, container);
-    widget.classList.toggle('is-overlapping', overlaps);
   });
 
   const stop = () => {
-    if (!isDragging) return;
-    isDragging = false;
+    if (!dragging) return;
+    dragging = false;
     widget.classList.remove('is-dragging');
-    widget.classList.remove('is-overlapping');
-
-    // Финальное разрешение коллизий
-    const all = Array.from(container.querySelectorAll('.dash-widget[data-widget]'));
-    snapCollisions(all);
-    savePositions(all);
+    document.body.classList.remove('is-dragging-widget');
+    save(widgets, container);
   };
 
   handle.addEventListener('pointerup', stop);
   handle.addEventListener('pointercancel', stop);
-}
-
-function isOverlappingOthers(widget, container) {
-  const all = Array.from(container.querySelectorAll('.dash-widget[data-widget]'))
-    .filter((w) => w !== widget);
-  const rect = widget.getBoundingClientRect();
-
-  return all.some((other) => {
-    const o = other.getBoundingClientRect();
-    return !(rect.right + GAP <= o.left
-          || o.right + GAP <= rect.left
-          || rect.bottom + GAP <= o.top
-          || o.bottom + GAP <= rect.top);
-  });
-}
-
-// --- Режим ---------------------------------------------------------------
-
-function syncDragMode(widgets) {
-  const draggable = document.body.dataset.view === 'widgets';
-  widgets.forEach((w) => {
-    w.classList.toggle('is-drag-enabled', draggable);
-  });
 }

@@ -17,15 +17,17 @@ const AVATAR_COLORS = [
 const ROLE_BADGE = {
   'Производитель': 'badge--producer',
   'Дистрибьютор':  'badge--distributor',
+  'Дистрибьютор / Оптовик': 'badge--distributor',
+  'Исполнитель / Подрядчик': 'badge--regional',
   'Поставщик':     'badge--supplier',
 };
 
 const LOCAL_REGIONS = new Set(['Санкт-Петербург', 'Ленинградская область']);
 
 /** Отрисовывает строки в tbody. */
-export function renderShortlist(tbody, items, onOpen) {
+export function renderShortlist(tbody, items, onOpen, selectedInn = null) {
   tbody.innerHTML = '';
-  items.forEach((item) => tbody.append(Row(item, onOpen)));
+  items.forEach((item) => tbody.append(Row(item, onOpen, selectedInn)));
 }
 
 /** Заглушка, если ничего не найдено. */
@@ -58,11 +60,13 @@ export function renderLoadingRows(tbody, count = 4) {
 
 // --- Одна строка ----------------------------------------------------------
 
-function Row(item, onOpen) {
+function Row(item, onOpen, selectedInn = null) {
   const initials = getInitials(item.name);
   const color = pickColor(item.inn);
 
+  const isSelected = selectedInn && String(selectedInn) === String(item.inn);
   const tr = h('tr', {
+    class: isSelected ? 'is-selected-supplier' : '',
     dataset: { inn: item.inn },
     role: 'button',
     tabindex: '0',
@@ -84,6 +88,7 @@ function Row(item, onOpen) {
         h('div', { class: 'company-meta' },
           h('span', { class: 'company-name' }, item.name),
           h('span', { class: 'company-inn' }, `ИНН ${item.inn}`),
+          isSelected ? h('span', { class: 'badge badge--local' }, 'Выбран заказчиком') : null,
         ),
       ),
     ),

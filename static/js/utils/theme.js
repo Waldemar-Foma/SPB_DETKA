@@ -4,7 +4,7 @@
  * Тема хранится в localStorage и применяется через data-theme на <html>.
  * После переключения кидает `theme:changed` — на него подписаны графики.
  */
-const STORAGE_KEY = 'spb-theme';
+const STORAGE_KEY = 'procurement-theme';
 
 export function initTheme() {
   const saved = localStorage.getItem(STORAGE_KEY);
@@ -24,6 +24,8 @@ export function toggleTheme() {
 
 function applyTheme(theme, { silent = false } = {}) {
   document.documentElement.dataset.theme = theme;
+  document.documentElement.style.colorScheme = theme;
+  document.documentElement.style.backgroundColor = theme === 'dark' ? '#121214' : '#f8fafc';
 
   // ARIA для switch
   const toggle = document.getElementById('theme-toggle');

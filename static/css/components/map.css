@@ -10,11 +10,11 @@
     font-family: var(--font-sans);
   }
   [data-theme="dark"] .mini-map .leaflet-tile {
-    filter: brightness(.75) contrast(1.05);
+    filter: none;
   }
 
   .geo-check__map .leaflet-container {
-    background: #0a0a0c;
+    background: #e5e7eb;
     font-family: var(--font-sans);
   }
 

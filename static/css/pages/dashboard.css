@@ -22,7 +22,7 @@
     z-index: 1;
     border-radius: inherit;
     overflow: hidden;
-    background: #0e0e10;
+    background: #e5e7eb;
   }
 
   .dash-map .map-view__canvas {
@@ -307,7 +307,7 @@
 
   /* Виджет 1 (Релевантность) — слева сверху, под KPI */
   .dash-widget[data-widget="relevance"] {
-    top: 96px;
+    top: 190px;
     left: 16px;
   }
 
@@ -320,7 +320,7 @@
 
   /* Виджет 3 (Типы) — справа сверху */
   .dash-widget[data-widget="types"] {
-    top: 96px;
+    top: 190px;
     right: 16px;
     left: auto;
   }
@@ -520,8 +520,8 @@
   /* --- Адаптив дашборда -------------------------------------------------- */
 
   @media (max-width: 1100px) {
-    .dash-widget:nth-of-type(2) { left: 16px; top: 300px; }
-    .dash-widget:nth-of-type(3) { left: 332px; top: 300px; }
+    .dash-widget[data-widget="relevance"] { left: 16px; top: 190px; }
+    .dash-widget[data-widget="types"] { right: 16px; left: auto; top: 190px; }
   }
 
   @media (max-width: 900px) {
@@ -532,8 +532,144 @@
   @media (max-width: 640px) {
     .dash-kpi { left: 12px; top: 12px; }
     .dash-widget { width: calc(100% - 32px); left: 16px !important; }
-    .dash-widget:nth-of-type(1) { top: 90px; }
-    .dash-widget:nth-of-type(2) { top: 300px; }
-    .dash-widget:nth-of-type(3) { top: 510px; }
+    .dash-context { top: 80px; }
+    .dash-widget[data-widget="relevance"] { top: 300px; }
+    .dash-widget[data-widget="types"] { top: 510px; right: auto; }
+    .dash-widget[data-widget="regions"] { top: 720px; bottom: auto; }
     .dash-list { padding: 12px; }
   }
+
+/* Контекст текущей закупки и сохранённое решение заказчика */
+.dash-context {
+  right: 16px;
+  top: 76px;
+  width: min(520px, calc(100vw - 150px));
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px 16px;
+  align-items: end;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-lg);
+  z-index: 520;
+}
+.dash-context__copy { display: grid; min-width: 0; gap: 3px; }
+.dash-context__copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; color: var(--color-text-strong); }
+.dash-context__copy > span:last-child { font-size: 11px; color: var(--color-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dash-context__eyebrow,
+.dash-selection__eyebrow { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--color-accent); }
+.dash-context__select { display: grid; gap: 4px; min-width: 210px; }
+.dash-context__select span { font-size: 10px; color: var(--color-text-muted); }
+.dash-context__select select {
+  min-width: 210px;
+  max-width: 260px;
+  padding: 8px 28px 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+  font-size: 12px;
+}
+.dash-context > .btn { grid-column: 2; justify-self: end; }
+
+.dash-selection {
+  left: 332px;
+  bottom: 16px;
+  width: min(430px, calc(100vw - 746px));
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: center;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: var(--color-surface);
+  border: 1px solid rgba(18,183,106,.28);
+  box-shadow: var(--shadow-lg);
+  z-index: 520;
+}
+.dash-selection[hidden] { display: none !important; }
+.dash-selection > div { display: grid; gap: 3px; }
+.dash-selection strong { color: var(--color-text-strong); font-size: 14px; }
+.dash-selection #selection-status-note { color: var(--color-text-muted); font-size: 11px; line-height: 1.4; }
+
+@media (max-width: 900px) {
+  .dash-context { left: 74px; right: 16px; width: auto; grid-template-columns: 1fr; }
+  .dash-context__select, .dash-context__select select { min-width: 0; width: 100%; max-width: none; }
+  .dash-context > .btn { grid-column: 1; justify-self: stretch; }
+  .dash-selection { left: 74px; right: 16px; width: auto; }
+}
+
+/* v9: карта/список + перетаскиваемые карточки прямо в режиме карты */
+body[data-view="map"] .dash-widget,body[data-view="map"] .dash-widget__head{cursor:grab}body[data-view="map"] .dash-widget__head:active{cursor:grabbing}.dash-widget.is-dragging{cursor:grabbing!important;transition:none!important;z-index:999!important}.dash-context--request{grid-template-columns:auto minmax(0,1fr) auto;align-items:center;top:74px}.dash-context__back{font-size:12px;color:var(--color-text-muted);white-space:nowrap}.dash-context--request>.btn{grid-column:auto}.dash-kpi{top:16px}.dash-context--request+.dash-kpi{top:16px}.dash-widget[data-widget="relevance"]{top:190px}.dash-widget[data-widget="types"]{top:190px}.dash-list{padding:22px}.top5-list{display:grid;gap:12px;padding:0 20px 20px}.top5-card{display:grid;grid-template-columns:42px minmax(0,1fr) auto;gap:14px;align-items:center;padding:16px;border:1px solid var(--color-border);border-radius:15px;background:var(--color-surface-alt);cursor:pointer;transition:.15s ease}.top5-card:hover{border-color:var(--color-border-strong);transform:translateY(-1px)}.top5-card.is-selected{border-color:rgba(18,183,106,.45);box-shadow:0 0 0 2px rgba(18,183,106,.08)}.top5-card__rank{display:grid;place-items:center;width:36px;height:36px;border-radius:50%;background:var(--color-primary-soft);font-weight:800;color:var(--color-text-strong)}.top5-card__main{display:grid;gap:6px;min-width:0}.top5-card__title{display:flex;align-items:center;gap:8px;min-width:0}.top5-card__title strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.top5-card__meta{font-size:12px;color:var(--color-text-muted)}.top5-card__metrics{display:flex;gap:7px;flex-wrap:wrap}.top5-metric{display:grid;gap:1px;padding:6px 9px;border-radius:9px;background:var(--color-surface);border:1px solid var(--color-border)}.top5-metric small{font-size:9px;color:var(--color-text-subtle);text-transform:uppercase}.top5-metric b{font-size:12px}.top5-card__warning{display:flex;gap:6px;align-items:flex-start;color:#f79009;font-size:11px}.top5-empty{padding:36px;text-align:center;color:var(--color-text-muted)}.match-filter{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.36);display:grid;place-items:center;padding:20px}.match-filter[hidden]{display:none}.match-filter__card{width:min(520px,100%);padding:20px;border-radius:18px;background:var(--color-surface);border:1px solid var(--color-border);box-shadow:var(--shadow-xl)}.match-filter__head{display:flex;justify-content:space-between;gap:15px}.match-filter__head>div{display:grid;gap:4px}.match-filter__head span{font-size:12px;color:var(--color-text-muted)}.match-filter__options{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:18px 0}.match-filter__options label{display:flex;gap:9px;align-items:center;padding:11px;border-radius:11px;background:var(--color-surface-alt);cursor:pointer}.match-filter__actions{display:flex;justify-content:flex-end;gap:8px}.simple-metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px}.simple-metric{display:grid;gap:4px;padding:10px;border-radius:10px;background:var(--color-surface-alt)}.simple-metric small{color:var(--color-text-muted);font-size:10px}.simple-metric strong{font-size:15px}.drawer-simple-text,.drawer-hint{line-height:1.55;color:var(--color-text-muted);margin:0}.workload-note{padding:12px;border-radius:11px;background:var(--color-surface-alt)}.workload-note p{margin:5px 0 0;line-height:1.45;font-size:12px;color:var(--color-text-muted)}.workload-note--high{border:1px solid rgba(240,68,56,.25)}.workload-note--medium{border:1px solid rgba(247,144,9,.25)}.review-list,.external-mentions{display:grid;gap:8px;margin:8px 0}.review-item,.external-mention{display:grid;gap:4px;padding:10px;border-radius:10px;background:var(--color-surface-alt);color:inherit;text-decoration:none}.review-item p,.external-mention span{margin:0;font-size:12px;color:var(--color-text-muted);line-height:1.45}.contacts-locked{padding:14px;border-radius:12px;background:var(--color-surface-alt)}.contacts-locked p{margin:6px 0 0;color:var(--color-text-muted);font-size:12px}.drawer-selection-note{margin:0 0 8px;color:var(--color-text-muted);font-size:11px;text-align:center}
+@media(max-width:760px){.dash-context--request{grid-template-columns:1fr;left:12px;right:12px;width:auto}.top5-card{grid-template-columns:36px 1fr}.top5-card>.btn{grid-column:2}.match-filter__options{grid-template-columns:1fr}.simple-metrics{grid-template-columns:1fr}}
+
+/* v9 final polish: map/list modes from the first prototype. */
+body[data-view="map"] .dash-widget__actions { opacity: 1; }
+body[data-view="list"] .dash-context,
+body[data-view="list"] .map-popup { display: none !important; }
+body[data-view="list"] .dash-list { padding-top: 20px; }
+
+/* v10: карточка «Подбор по заявке» тоже является перемещаемым виджетом. */
+body[data-view="map"] .dash-context[data-widget] {
+  user-select: none;
+}
+
+.dash-context--request {
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+}
+
+.dash-context__drag-handle {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-md);
+  color: var(--color-text-subtle);
+  cursor: grab;
+  touch-action: none;
+  transition: color var(--dur-fast) var(--ease),
+              background var(--dur-fast) var(--ease);
+}
+
+.dash-context__drag-handle:hover {
+  color: var(--color-text-strong);
+  background: var(--color-primary-soft);
+}
+
+.dash-context__drag-handle:active,
+.dash-context.is-dragging .dash-context__drag-handle {
+  cursor: grabbing;
+}
+
+.dash-context.is-dragging {
+  opacity: .96;
+  transform: scale(1.01);
+  box-shadow: 0 20px 48px rgb(0 0 0 / .45);
+  z-index: 700;
+  transition: none;
+}
+
+body.is-dragging-widget {
+  user-select: none;
+}
+
+@media (max-width: 760px) {
+  .dash-context--request {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .dash-context__back,
+  .dash-context__copy {
+    grid-column: 1;
+  }
+  .dash-context__drag-handle {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: start;
+  }
+  .dash-context--request > .btn {
+    grid-column: 1 / -1;
+    justify-self: stretch;
+  }
+}

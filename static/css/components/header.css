@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Верхняя шапка: заголовок + View Switcher + Theme Toggle.
+   Верхняя шапка: заголовок + переход на дашборд + переключатель темы.
    ========================================================================== */
 
    .app-header {
@@ -37,34 +37,17 @@
     gap: var(--space-3);
   }
 
-  /* --- View Switcher ---------------------------------------------------- */
-
-  .view-switcher {
+  .app-header__dashboard {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 4px;
-    border-radius: var(--radius-pill);
-    background: var(--color-surface-alt);
+    gap: 7px;
+    text-decoration: none;
   }
 
-  .view-tab {
-    padding: 6px 16px;
-    border-radius: var(--radius-pill);
-    font-size: var(--fs-xs);
-    font-weight: var(--fw-medium);
-    color: var(--color-text-muted);
-    background: transparent;
-    border: 0;
-    cursor: pointer;
-    transition: background var(--dur-base) var(--ease),
-                color var(--dur-base) var(--ease);
-  }
-  .view-tab:hover { color: var(--color-text-strong); }
-  .view-tab.is-active {
-    background: var(--color-accent);
-    color: #fff;
-    font-weight: var(--fw-semibold);
+  .app-header__dashboard.is-active {
+    background: var(--color-primary-soft);
+    color: var(--color-text-strong);
+    border-color: var(--color-border-strong);
   }
 
   /* --- Theme Toggle ----------------------------------------------------- */

@@ -1,4 +1,4 @@
-const KEY = 'spb-favorites';
+const KEY = 'procurement-favorites';
 
 export function getFavorites() {
   try {

@@ -1,353 +1,54 @@
-/**
- * Досье ИИ — правая выезжающая панель.
- *
- * Открывается кликом по строке таблицы, виджету или маркеру на карте.
- * Управляется классом `is-drawer-open` на <body>.
- *
- * Структура:
- *   1. Шапка (кнопка возврата, избранное, поделиться).
- *   2. Заголовок компании + мета-пилюли.
- *   3. AI Reasoning — «Почему в топе?» (фиолетовый блок).
- *   4. Разбор скоринга (radial + 5 факторов).
- *   5. Гео-проверка (тёмная карта + маршрут).
- *   6. Контакты.
- *   7. Контрактный опыт (KPI + гистограмма).
- *   8. Быстрые действия.
- *   9. Sticky CTA «Добавить в закупочную документацию».
- */
 import { $, h, icon } from '../utils/dom.js';
-import { getSupplierDetails } from '../api/suppliers.js';
-import { RadialScore } from './radialScore.js';
-import { ContractsBarChart } from './barChart.js';
-import { MiniMap } from './miniMap.js';
-import { SkeletonDrawer } from './skeleton.js';
-import { isFavorite, toggleFavorite } from '../utils/favorites.js';
+import { getSupplierDetails, refreshExternalReputation } from '../api/suppliers.js';
+import { selectSupplier } from '../api/procurement.js';
 import { toast } from './toast.js';
 
-// --- Публичный API --------------------------------------------------------
+export async function openDrawer(inn, procurement) {
+  const drawer=$('#right-drawer'); if(!drawer)return;
+  document.body.classList.add('is-drawer-open'); drawer.innerHTML='<div class="drawer__body"><div class="skeleton" style="height:240px"></div></div>';
+  try { const data=await getSupplierDetails(inn,{procurement_id:procurement?.procurement_id}); drawer.innerHTML=''; drawer.append(content(data,procurement)); }
+  catch(e){drawer.innerHTML=`<div class="drawer__body"><p>Не удалось загрузить компанию: ${escapeHtml(e.message)}</p></div>`;}
+}
+export function closeDrawer(){ document.body.classList.remove('is-drawer-open'); }
 
-/**
- * Открывает правую панель с профилем компании.
- * @param {string} inn — ИНН компании
- * @param {Object} [procurement] — текущая закупка (для AI-объяснений)
- */
-export async function openDrawer(inn, procurement = null) {
-  const drawer = $('#right-drawer');
-  if (!drawer) {
-    console.error('[drawer] Не найден #right-drawer');
-    return;
-  }
-
-  document.body.classList.add('is-drawer-open');
-  drawer.innerHTML = '';
-  drawer.append(SkeletonDrawer());
-
-  // Подсвечиваем активную строку в таблице
-  document.querySelectorAll('.shortlist tbody tr').forEach((tr) => {
-    tr.classList.toggle('is-active', tr.dataset.inn === inn);
-  });
-
-  try {
-    const data = await getSupplierDetails(inn);
-    drawer.innerHTML = '';
-    drawer.append(DrawerContent(data, procurement));
-  } catch (error) {
-    console.error('[drawer] Ошибка загрузки профиля:', error);
-    drawer.innerHTML = '';
-    drawer.append(h('div', { class: 'drawer__body' },
-      h('p', {}, 'Не удалось загрузить профиль: ' + error.message)));
-    toast('Ошибка загрузки профиля', 'error');
-  }
+function content(data, procurement){
+  const root=h('div',{class:'drawer'},
+    h('div',{class:'drawer__head'},h('button',{class:'drawer__back',type:'button',onClick:closeDrawer},icon('chevron-left'),'К результатам')),
+    h('div',{class:'drawer__body'},
+      h('div',{class:'drawer__title-block'},h('span',{class:'drawer__eyebrow'},'Кандидат'),h('h2',{class:'drawer__title'},data.name),h('div',{class:'drawer__subtitle'},`${data.company_type} · ${data.region}`),h('div',{class:'drawer__meta'},pill(`ИНН ${data.inn}`),data.is_gisp_manufacturer?pill('Производитель ГИСП'):null)),
+      explanation(data), metrics(data), warning(data), reviews(data), external(data), contacts(data),
+    ),
+    selection(data,procurement)
+  );
+  return root;
 }
 
-/** Закрывает правую панель. */
-export function closeDrawer() {
-  document.body.classList.remove('is-drawer-open');
-  document.querySelectorAll('.shortlist tbody tr').forEach((tr) =>
-    tr.classList.remove('is-active'));
-}
-
-// --- Основной контент -----------------------------------------------------
-
-function DrawerContent(data, procurement) {
-  const score = data.scoring_breakdown || {};
-  const fav = isFavorite(data.inn);
-
-  const favBtn = h('button', {
-    class: `icon-btn ${fav ? 'is-active' : ''}`,
-    type: 'button',
-    'aria-label': fav ? 'Убрать из избранного' : 'Добавить в избранное',
-    onClick: () => {
-      const added = toggleFavorite(data.inn);
-      favBtn.classList.toggle('is-active', added);
-      toast(added ? 'Добавлено в избранное' : 'Удалено из избранного',
-        added ? 'success' : 'info');
-    },
-  }, icon('star'));
-
-  return h('div', { class: 'drawer' },
-
-    // --- Шапка -----------------------------------------------------------
-    h('div', { class: 'drawer__head' },
-      h('button', {
-        class: 'drawer__back',
-        type: 'button',
-        onClick: closeDrawer,
-      }, icon('chevron-left'), 'К результатам'),
-      h('div', { class: 'drawer__head-actions' },
-        favBtn,
-        h('button', {
-          class: 'icon-btn',
-          type: 'button',
-          'aria-label': 'Поделиться',
-        }, icon('share-alt')),
-      ),
-    ),
-
-    // --- Тело ------------------------------------------------------------
-    h('div', { class: 'drawer__body' },
-
-      // Заголовок компании
-      h('div', { class: 'drawer__title-block' },
-        h('span', { class: 'drawer__eyebrow' },
-          icon('sparkles'), 'Досье ИИ'),
-        h('h2', { class: 'drawer__title' }, data.name),
-        h('div', { class: 'drawer__subtitle' },
-          `Тип: ${data.company_type || '—'}`),
-        h('div', { class: 'drawer__meta' },
-          pill(`ИНН ${data.inn}`),
-          data.ogrn ? pill(`ОГРН ${data.ogrn}`) : null,
-          pill(data.region),
-          data.years_on_market
-            ? pill(`${data.years_on_market} лет на рынке`)
-            : null,
-        ),
-      ),
-
-      // AI Reasoning — «Почему в топе?»
-      AIReasoningSection(data, procurement),
-
-      // Разбор скоринга
-      score.total != null
-        ? ScoringSection(score)
-        : null,
-
-      // Гео-проверка
-      data.coords?.lat
-        ? GeoCheckSection(data)
-        : null,
-
-      // Контакты
-      data.contacts
-        ? ContactsSection(data.contacts)
-        : null,
-
-      // Контрактный опыт
-      data.contract_history
-        ? ContractsSection(data.contract_history)
-        : null,
-
-      // Быстрые действия
-      QuickActionsSection(),
-    ),
-
-    // --- Sticky CTA ------------------------------------------------------
-    h('div', { class: 'drawer__sticky' },
-      h('button', {
-        class: 'btn btn--accent btn--block',
-        type: 'button',
-        onClick: () => toast(
-          `${data.name} добавлена в закупочную документацию`,
-          'success',
-        ),
-      }, icon('check'), 'Добавить в закупочную документацию'),
-    ),
+function explanation(data){
+  const ai=data.ai_explanation||{};
+  const isQwen=ai.source==='qwen2.5:3b';
+  return h('section',{class:'drawer__section'},
+    h('h3',{class:'drawer__section-title'},icon('sparkles'),'Почему подходит'),
+    h('div',{class:`ai-explanation-source ${isQwen?'is-ai':'is-fallback'}`},isQwen?'Объяснение сформировано локальной Qwen':'Показано объяснение по рассчитанным метрикам'),
+    h('p',{class:'drawer-simple-text'},ai.text||'Объяснение недоступно.')
   );
 }
-
-// --- Секции ---------------------------------------------------------------
-
-/**
- * AI Reasoning — блок «Почему в топе?».
- * Всегда фиолетовый (в обеих темах), как в ТЗ.
- */
-function AIReasoningSection(data, procurement) {
-  const okpd2Name = procurement?.okpd2_name || 'профиль закупки';
-  const topScore = data.scoring_breakdown?.total ?? 0;
-
-  return h('section', { class: 'drawer__section' },
-    h('h3', { class: 'drawer__section-title' },
-      icon('sparkles'), 'Почему в топе?'),
-
-    h('div', { class: 'ai-reasoning' },
-      h('div', { class: 'ai-reasoning__label' },
-        icon('robot'), `AI-объяснение · индекс ${topScore}%`),
-      h('ul', { class: 'ai-reasoning__list' },
-        h('li', {},
-          icon('check-circle'),
-          h('span', {},
-            h('b', {}, 'Прямое совпадение по ТЗ: '),
-            okpd2Name,
-          ),
-        ),
-        h('li', {},
-          icon('check-circle'),
-          h('span', {},
-            h('b', {}, 'Логистика: '),
-            'склад в пределах Санкт-Петербурга и Ленинградской области',
-          ),
-        ),
-        h('li', {},
-          icon('check-circle'),
-          h('span', {},
-            h('b', {}, 'Финансовая стабильность: '),
-            'оборот компании превышает сумму контракта в 5 раз (риск дефолта < 1%)',
-          ),
-        ),
-      ),
-    ),
-  );
+function metrics(data){ const m=data.metrics||{}, s=data.scoring_breakdown||{}; return h('section',{class:'drawer__section'},h('h3',{class:'drawer__section-title'},icon('chart-bar'),'Главное'),h('div',{class:'simple-metrics'},
+  metric('Совпадение',`${s.total??0}%`), metric('По смыслу',`${s.semantic??0}%`), metric('Опыт в категории',`${s.category_experience??0}%`), metric('Win rate',m.win_rate==null?'Нет данных':`${m.win_rate}%`), metric('Отзывы',m.reviews_count?`${m.rating}/5 (${m.reviews_count})`:'Пока нет'), metric('Логистика',m.logistics?`${m.logistics.score}%`:'—')
+),m.logistics?h('p',{class:'drawer-hint'},m.logistics.note):null); }
+function warning(data){ const w=data.metrics?.workload; if(!w)return null; return h('section',{class:'drawer__section'},h('h3',{class:'drawer__section-title'},icon('clock'),'Текущая нагрузка'),h('div',{class:`workload-note workload-note--${w.level}`},h('strong',{},w.label),w.warning?h('p',{},w.warning):h('p',{},'Сервис не видит полную загрузку компании вне собственных заявок, поэтому отсутствие сигнала не является гарантией свободных ресурсов.'))); }
+function reviews(data){ const rows=data.reviews||[]; return h('section',{class:'drawer__section'},h('h3',{class:'drawer__section-title'},icon('star'),'Отзывы заказчиков'),rows.length?h('div',{class:'review-list'},rows.slice(0,3).map(r=>h('div',{class:'review-item'},h('strong',{},`${r.rating}/5`),h('p',{},r.comment||'Без комментария')))):h('p',{class:'drawer-hint'},'Отзывов внутри сервиса пока нет. Оставить отзыв можно только после завершения заказа.')); }
+function external(data){
+  const wrap=h('div',{class:'external-mentions'}); renderExternal(wrap,data.external_mentions||[]);
+  const btn=h('button',{class:'btn btn--ghost btn--sm',type:'button',onClick:async()=>{btn.disabled=true;btn.textContent='Ищем…';try{const result=await refreshExternalReputation(data.inn);renderExternal(wrap,result.items||[]);btn.textContent='Обновить поиск';}catch(e){toast('Не удалось выполнить внешний поиск: '+e.message,'error');btn.textContent='Повторить';}finally{btn.disabled=false;}}},'Проверить отзывы в интернете');
+  return h('section',{class:'drawer__section'},h('h3',{class:'drawer__section-title'},icon('globe'),'Внешние упоминания'),h('p',{class:'drawer-hint'},'Показываем только реальные ссылки и сниппеты поиска. Внешний рейтинг не придумываем и не смешиваем с отзывами сервиса.'),wrap,btn);
 }
-
-/** Разбор скоринга: radial + 5 полос факторов. */
-function ScoringSection(score) {
-  return h('section', { class: 'drawer__section' },
-    h('h3', { class: 'drawer__section-title' },
-      icon('chart-bar'), 'Разбор скоринга'),
-
-    h('div', { class: 'drawer__score' },
-      RadialScore(score.total),
-      h('div', { class: 'drawer__factors' },
-        FactorBar('Совпадение продукции', score.product_match),
-        FactorBar('ОКПД2', score.okpd2_match),
-        FactorBar('Опыт контрактов', score.contracts_match),
-        FactorBar('Регион', score.region_match),
-        FactorBar('Масштаб компании', score.scale_match),
-      ),
-    ),
-  );
+function renderExternal(host,items){host.innerHTML='';if(!items.length){host.append(h('p',{class:'drawer-hint'},'Внешние упоминания ещё не загружены.'));return;}items.forEach(x=>host.append(h('a',{class:'external-mention',href:x.url,target:'_blank',rel:'noopener'},h('strong',{},x.title||x.source),h('span',{},x.snippet||x.source))));}
+function contacts(data){ if(data.contacts_locked)return h('section',{class:'drawer__section contacts-locked'},h('h3',{class:'drawer__section-title'},icon('address-book'),'Контакты'),h('p',{},'Контактная информация откроется после выбора этой компании исполнителем.')); const c=data.contacts||{}; return h('section',{class:'drawer__section'},h('h3',{class:'drawer__section-title'},icon('address-book'),'Контакты исполнителя'),h('div',{class:'contact-list'},row('phone',c.phone),row('envelope',c.email),row('globe',c.website),row('map-marker-alt',c.address||data.region))); }
+function selection(data,procurement){
+  const locked=Boolean(procurement?.selected_supplier_inn)||procurement?.status!=='matching';
+  const selected=String(procurement?.selected_supplier_inn||'')===String(data.inn);
+  const btn=h('button',{class:'btn btn--accent btn--block',type:'button',disabled:locked,onClick:async()=>{btn.disabled=true;btn.textContent='Сохраняем…';try{const result=await selectSupplier(procurement.procurement_id,data.inn);procurement.selected_supplier_inn=result.selected_supplier_inn;procurement.status='selected';toast('Исполнитель выбран. Контакты открыты в заявке.','success');window.location.replace(result.details_url);}catch(e){btn.disabled=false;btn.textContent='Выбрать исполнителя';toast(e.message,'error');}}},selected?'Исполнитель выбран':(locked?'Выбор по заявке закрыт':'Выбрать исполнителя'));
+  return h('div',{class:'drawer__sticky'},h('p',{class:'drawer-selection-note'},locked?'После выбора вернуться к подбору по этой заявке нельзя.':'Система рекомендует, но решение принимаете вы.'),btn);
 }
-
-/** Гео-проверка: тёмная карта + маршрут. */
-function GeoCheckSection(data) {
-  const address = data.contacts?.address || data.region;
-
-  return h('section', { class: 'drawer__section' },
-    h('h3', { class: 'drawer__section-title' },
-      icon('map-marker-alt'), 'Гео-проверка'),
-
-    h('div', { class: 'geo-check' },
-      h('div', { class: 'geo-check__label' },
-        icon('route'), 'Маршрут до объекта заказчика'),
-      h('div', { class: 'geo-check__map' }, MiniMap(data.coords)),
-      h('div', { class: 'geo-check__foot' },
-        h('span', {}, icon('map-pin'), data.region),
-        h('span', {}, icon('road'), '≈ 20 км до объекта'),
-      ),
-    ),
-  );
-}
-
-/** Контакты компании. */
-function ContactsSection(contacts) {
-  return h('section', { class: 'drawer__section' },
-    h('h3', { class: 'drawer__section-title' },
-      icon('address-book'), 'Контактная информация'),
-
-    h('div', { class: 'contact-list' },
-      ContactRow('globe', contacts.website, 'Сайт'),
-      ContactRow('phone', contacts.phone, 'Телефон'),
-      ContactRow('envelope', contacts.email, 'Email'),
-      ContactRow('map-marker-alt', contacts.address, 'Адрес'),
-    ),
-  );
-}
-
-/** Контрактный опыт: KPI + гистограмма по годам. */
-function ContractsSection(history) {
-  return h('section', { class: 'drawer__section' },
-    h('h3', { class: 'drawer__section-title' },
-      icon('file-contract'), 'Контрактный опыт'),
-
-    h('div', { class: 'kpi-grid' },
-      Kpi(String(history.total_contracts), 'аналогичных контрактов'),
-      Kpi(formatMlnFromRub(history.total_amount_rub), 'общая сумма'),
-    ),
-
-    ContractsBarChart(history.by_years || {}),
-  );
-}
-
-/** Быстрые действия. */
-function QuickActionsSection() {
-  const actions = [
-    ['briefcase', 'Виды деятельности'],
-    ['shopping-cart', 'Продукция'],
-    ['certificate', 'Сертификаты'],
-    ['university', 'Реквизиты'],
-    ['newspaper', 'Публикации'],
-    ['comment', 'Отзывы'],
-  ];
-
-  return h('section', { class: 'drawer__section' },
-    h('h3', { class: 'drawer__section-title' },
-      icon('apps'), 'Дополнительно'),
-
-    h('div', { class: 'quick-actions' },
-      ...actions.map(([iconName, label]) =>
-        h('button', {
-          class: 'chip',
-          type: 'button',
-          onClick: () => toast(`${label}: скоро`, 'info'),
-        }, icon(iconName), label),
-      ),
-    ),
-  );
-}
-
-// --- Мелкие хелперы -------------------------------------------------------
-
-const pill = (text) => h('span', {}, text);
-
-const Kpi = (value, label) =>
-  h('div', { class: 'kpi' },
-    h('div', { class: 'kpi__value' }, value),
-    h('div', { class: 'kpi__label' }, label),
-  );
-
-const ContactRow = (iconName, value, title) =>
-  h('div', { class: 'contact-list__row', title: title || '' },
-    icon(iconName),
-    h('span', {}, value || '—'),
-  );
-
-/**
- * Полоса фактора скоринга.
- * Зелёная ≥ 90, янтарная 50–89, красная < 50.
- */
-function FactorBar(label, value) {
-  const v = Number(value) || 0;
-  const fill = h('div', { class: `progress__fill ${factorColor(v)}` });
-
-  requestAnimationFrame(() => { fill.style.width = `${v}%`; });
-
-  return h('div', { class: 'factor' },
-    h('div', { class: 'factor__head' },
-      h('span', {}, label),
-      h('span', { class: 'factor__value' }, `${v}%`),
-    ),
-    h('div', { class: 'progress progress--thin' }, fill),
-  );
-}
-
-function factorColor(value) {
-  if (value >= 90) return '';
-  if (value >= 50) return 'progress__fill--warn';
-  return 'progress__fill--danger';
-}
-
-function formatMlnFromRub(rub) {
-  const n = Number(rub) || 0;
-  if (n >= 1e9) return `${(n / 1e9).toFixed(1)} млрд ₽`;
-  return `${Math.round(n / 1e6)} млн ₽`;
-}
+const pill=t=>h('span',{},t); const metric=(l,v)=>h('div',{class:'simple-metric'},h('small',{},l),h('strong',{},v)); const row=(i,v)=>h('div',{class:'contact-list__row'},icon(i),h('span',{},v||'Не найдено в открытых данных'));
+function escapeHtml(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));}

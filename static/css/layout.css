@@ -149,3 +149,7 @@ body.is-drawer-open { overflow: hidden; }
   .app-sidebar { display: none; }
   .app-drawer { width: 100%; max-width: 480px; }
 }
+.app-sidebar--no-logo .app-sidebar__menu{padding-top:4px}
+
+/* v10: досье контрагента всегда выше плавающих карточек карты. */
+.app-drawer { z-index: 900; }

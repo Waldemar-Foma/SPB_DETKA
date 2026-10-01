@@ -1,4 +1,7 @@
 import { api } from './client.js';
-
-/** Детальный профиль контрагента по ИНН. */
-export const getSupplierDetails = (inn) => api.get(`/suppliers/${inn}/details`);
+export const getSupplierDetails = (inn, params = {}) => {
+  const clean = Object.fromEntries(Object.entries(params).filter(([,v]) => v !== undefined && v !== null && v !== ''));
+  const qs = new URLSearchParams(clean).toString();
+  return api.get(`/suppliers/${inn}/details${qs ? '?' + qs : ''}`);
+};
+export const refreshExternalReputation = (inn) => api.post(`/suppliers/${inn}/external-reputation`, {});
