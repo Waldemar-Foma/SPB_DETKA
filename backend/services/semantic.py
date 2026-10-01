@@ -1,100 +1,63 @@
-"""Семантическое сопоставление продукции.
+"""Семантическое сопоставление закупки и профиля контрагента.
 
-На хакатоне сюда подключается ML-модель (например,
-sentence-transformers с paraphrase-multilingual-MiniLM-L12-v2).
-
-Сейчас модуль возвращает None, чтобы product_score() использовал
-эвристический fallback. Как только появится реальная модель,
-достаточно реализовать _embed() и убрать заглушку в product_similarity().
+Используется локальная multilingual-e5-base, поднятая через llama-server.
+Если сервер недоступен, возвращается None и скоринг переходит на прозрачную
+лексическую эвристику.
 """
-
 from __future__ import annotations
 
-from functools import lru_cache
 from typing import TYPE_CHECKING
+
+from .local_ai import embedding, embedding_many
 
 if TYPE_CHECKING:
     from backend.models import Procurement, Supplier
 
 
-# --- Публичный API --------------------------------------------------------
-
 def product_similarity(procurement: "Procurement", supplier: "Supplier") -> float | None:
-    """Возвращает косинусную близость 0..1 или None, если модель недоступна.
-
-    None — сигнал вызывающему коду использовать fallback.
-    """
-    if not _is_model_available():
+    query = "query: " + _procurement_text(procurement)
+    passage = "passage: " + _supplier_text(supplier)
+    a = embedding(query)
+    b = embedding(passage)
+    if a is None or b is None or len(a) != len(b):
         return None
+    return _cosine(a, b)
 
-    text_a = _procurement_text(procurement)
-    text_b = _supplier_text(supplier)
-    vec_a, vec_b = _embed(text_a), _embed(text_b)
-
-    if vec_a is None or vec_b is None:
-        return None
-
-    return _cosine(vec_a, vec_b)
-
-
-# --- Точки расширения -----------------------------------------------------
-
-def _is_model_available() -> bool:
-    """Проверяет, подключена ли модель.
-
-    На хакатоне: возвращает True, если sentence-transformers установлен
-    и модель загружена. Сейчас — всегда False.
-    """
-    return False
-
-
-@lru_cache(maxsize=1)
-def _load_model():
-    """Загружает модель один раз.
-
-    Пример реализации для хакатона:
-
-        from sentence_transformers import SentenceTransformer
-        return SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
-    """
-    return None
-
-
-@lru_cache(maxsize=512)
-def _embed(text: str):
-    """Возвращает вектор текста. Сейчас — None."""
-    model = _load_model()
-    if model is None:
-        return None
-    return model.encode(text, normalize_embeddings=True)
-
-
-# --- Внутренние утилиты ---------------------------------------------------
 
 def _procurement_text(procurement: "Procurement") -> str:
-    """Собирает текстовое представление закупки для эмбеддинга."""
     parts = [
         procurement.title or "",
         procurement.okpd2_name or "",
+        procurement.okpd2_code or "",
         procurement.keywords or "",
+        getattr(procurement, "subject", "") or "",
     ]
     return " ".join(p for p in parts if p).strip()
 
 
 def _supplier_text(supplier: "Supplier") -> str:
-    """Собирает текстовое представление компании для эмбеддинга."""
     parts = [
         supplier.name or "",
+        getattr(supplier, "specialization", "") or "",
+        supplier.okpd2_codes or "",
+        getattr(supplier, "primary_okved", "") or "",
         supplier.company_type or "",
     ]
     return " ".join(p for p in parts if p).strip()
 
 
 def _cosine(a, b) -> float:
-    """Косинусная близость двух нормализованных векторов."""
-    try:
-        import numpy as np
-        return float(np.dot(a, b))
-    except ImportError:
-        # На случай отсутствия numpy — скалярное произведение вручную.
-        return float(sum(x * y for x, y in zip(a, b)))
+    dot = sum(x * y for x, y in zip(a, b))
+    na = sum(x * x for x in a) ** 0.5
+    nb = sum(y * y for y in b) ** 0.5
+    if not na or not nb:
+        return 0.0
+    # E5 обычно выдаёт положительную близость, но жёстко ограничиваем диапазон.
+    return max(0.0, min(1.0, dot / (na * nb)))
+
+
+def warm_similarity_cache(procurement: "Procurement", suppliers: list["Supplier"]) -> None:
+    """Pre-compute E5 vectors for the shortlist in a few batch requests."""
+    query = "query: " + _procurement_text(procurement)
+    passages = ["passage: " + _supplier_text(s) for s in suppliers]
+    embedding_many([query, *passages], batch_size=64)

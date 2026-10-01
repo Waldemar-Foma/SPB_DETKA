@@ -67,7 +67,7 @@ def _matches(item: dict, filters: dict[str, Any]) -> bool:
             return False
     if filters.get("q"):
         query = filters["q"].lower()
-        haystack = f"{item['name']} {item['inn']}".lower()
+        haystack = f"{item['name']} {item['inn']} {' '.join(item.get('tags', []))}".lower()
         if query not in haystack:
             return False
     return True

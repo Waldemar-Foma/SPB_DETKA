@@ -1,50 +1,56 @@
-"""Взвешенный расчёт итогового индекса релевантности."""
-
+"""Взвешенный расчёт релевантности и объяснимые пользовательские метрики."""
 from __future__ import annotations
 
-from backend.models import Procurement, Supplier
 from . import scoring_config as cfg
 from . import scoring_factors as sf
+from .geography import logistics_score
+from .reputation import review_summary, workload_summary
+from .role_classifier import classify_role
 
 
-def compute_score(procurement: Procurement, supplier: Supplier) -> dict:
-    """Возвращает разбивку по факторам и итоговый Score (0..100)."""
+def compute_score(procurement, supplier, preference: str = "balanced") -> dict:
     factors = {
-        "okpd2":      sf.okpd2_score(procurement, supplier),
-        "product":    sf.product_score(procurement, supplier),
+        "product": sf.product_score(procurement, supplier),
+        "okpd2": sf.okpd2_score(procurement, supplier),
         "experience": sf.experience_score(procurement, supplier),
-        "region":     sf.region_score(procurement, supplier),
-        "scale":      sf.scale_score(procurement, supplier),
+        "win_rate": sf.win_rate_score(procurement, supplier),
+        "customer": sf.customer_history_score(procurement, supplier),
+        "geography": sf.geography_score(procurement, supplier),
+        "reviews": sf.reviews_score(procurement, supplier),
+        "workload": sf.workload_score(procurement, supplier),
     }
-    total = round(sum(factors[k] * cfg.WEIGHTS[k] for k in cfg.WEIGHTS))
-    return {"total": total, **factors}
+    weights = cfg.get_weights(preference)
+    total = round(sum(factors[k] * weights[k] for k in weights))
+    return {"total": max(0, min(100, total)), **factors, "weights": weights}
 
 
 def relevance_label(score: int) -> str:
-    """Текстовая интерпретация балла — по шкале из scoring_config."""
     for threshold, label in cfg.RELEVANCE_THRESHOLDS:
         if score >= threshold:
             return label
     return cfg.RELEVANCE_THRESHOLDS[-1][1]
 
 
-def build_tags(procurement: Procurement, supplier: Supplier, scores: dict) -> list[str]:
-    """Формирует информационные теги для карточки."""
+def build_tags(procurement, supplier, scores: dict) -> list[str]:
     tags: list[str] = []
-
-    if scores["okpd2"] == cfg.OKPD2_EXACT_SCORE:
-        tags.append("ОКПД2 совпадает")
-    elif scores["okpd2"] == cfg.OKPD2_CLASS_SCORE:
-        tags.append("ОКПД2 по классу")
-
-    count = len(supplier.contracts or [])
-    if count:
-        tags.append(f"{count} аналогичных контрактов")
-
-    if supplier.website and supplier.phone:
-        tags.append("Есть сайт и контакты")
-
-    if not supplier.is_verified:
-        tags.append("Требует верификации")
-
-    return tags
+    role = classify_role(supplier, procurement)
+    if scores["product"] >= 80:
+        tags.append("Сильное совпадение по смыслу")
+    if scores["okpd2"] >= 85:
+        tags.append("Совпадает ОКПД2")
+    if int(getattr(supplier, "wins_count", 0) or 0):
+        tags.append(f"{int(supplier.wins_count)} побед в истории")
+    if bool(getattr(supplier, "is_gisp_manufacturer", False)):
+        tags.append("Производитель ГИСП")
+    geo = logistics_score(procurement, supplier)
+    if geo["score"] >= 80:
+        tags.append("Логистика выглядит разумно")
+    reviews = review_summary(supplier.id)
+    if reviews["count"]:
+        tags.append(f"Отзывы {reviews['avg']}/5")
+    workload = workload_summary(supplier.inn)
+    if workload["level"] == "high":
+        tags.append("Возможна высокая загрузка")
+    if role == "Исполнитель / Подрядчик":
+        tags.append("Подходит для услуг / работ")
+    return tags[:5]

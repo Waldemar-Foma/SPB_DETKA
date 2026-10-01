@@ -1,0 +1,15 @@
+{
+  "source_archive": "MODELS_&_SCRIPT(1).rar",
+  "embedding_model": "all-minilm",
+  "dimensions": 384,
+  "index_type": "IndexFlatIP",
+  "normalized_vectors": true,
+  "rows": 2000,
+  "usage": "first_stage_candidate_retrieval",
+  "final_ranking": "main application scoring (semantic + OKPD2 + experience + win rate + geography + reviews + workload)",
+  "known_limitations": [
+    "Index covers 2000 most active suppliers from the prototype cube.",
+    "Prototype embedding profile used only the first 3 OKPD2 codes and first 3 product names.",
+    "The final top-5 must therefore be re-ranked by the main application and may be supplemented by database fallback candidates."
+  ]
+}
