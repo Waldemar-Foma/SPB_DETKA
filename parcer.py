@@ -15,7 +15,7 @@ async def download_registry_securely():
             
             # 1. Заходим на главную, чтобы Qrator проверил браузер и выдал токены
             print("Проходим проверку защиты Qrator...")
-            await page.goto("https://gisp.gov.ru/pp719v2/pub/prod/", wait_until="domcontentloaded")
+            await page.goto("https://gisp.gov.ru/pp719v2/pub/prod/", wait_until="domcontentloaded", timeout=120000)
             await asyncio.sleep(3) # Даем JS-скриптам защиты пару секунд на отработку
             
             print("Токены получены. Запрашиваем файл реестра...")
