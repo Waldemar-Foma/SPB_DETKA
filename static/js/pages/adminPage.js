@@ -17,6 +17,9 @@ export function initAdminPage() {
   document.getElementById('admin-run-gisp')?.addEventListener('click', runGisp);
   document.getElementById('admin-enrich-gisp')?.addEventListener('click', enrichGisp);
   document.getElementById('admin-run-company-enrichment')?.addEventListener('click', runCompanyEnrichment);
+  document.querySelectorAll('.admin-dataset-btn').forEach((button) => {
+    button.addEventListener('click', () => activateDataset(button));
+  });
   refresh(false);
   setInterval(() => refresh(false), 8000);
 }
@@ -31,6 +34,10 @@ async function refresh(showToast = false) {
     setText('admin-count-procurements', data.database.procurements);
     setText('admin-count-contracts', data.database.contracts);
     setText('admin-count-users', data.database.users);
+    const activeDataset = data.database?.active_dataset || {};
+    setText('admin-active-dataset', activeDataset.label || 'не выбран');
+    setText('admin-dataset-note', activeDataset.id ? `Активен датасет ${activeDataset.id} · ${activeDataset.inserted ?? data.database.procurements ?? 0} закупок · ${activeDataset.suppliers?.unique_suppliers ?? data.database.suppliers ?? 0} контрагентов.` : 'Датасет из dataset.zip ещё не выбирался.');
+    updateDatasetButtons(activeDataset.id);
 
     const candidate = data.models?.candidate_search || {};
     setHealth(
@@ -100,6 +107,34 @@ async function testModels() {
   } finally {
     if (button) button.disabled = false;
   }
+}
+
+
+async function activateDataset(button) {
+  const datasetId = Number(button?.dataset?.datasetId || 0);
+  if (!datasetId) return;
+  const buttons = [...document.querySelectorAll('.admin-dataset-btn')];
+  buttons.forEach((item) => { item.disabled = true; });
+  setText('admin-dataset-note', `Переключаемся на датасет ${datasetId}…`);
+  try {
+    const data = await jsonFetch(`/admin/api/dataset/${datasetId}/activate`, { method: 'POST', body: '{}' });
+    toast(data.message || `Датасет ${datasetId} активирован`, 'success');
+    await refresh(false);
+  } catch (error) {
+    toast(`Датасет ${datasetId}: ${error.message}`, 'error');
+    await refresh(false);
+  } finally {
+    buttons.forEach((item) => { item.disabled = false; });
+  }
+}
+
+function updateDatasetButtons(activeId) {
+  document.querySelectorAll('.admin-dataset-btn').forEach((button) => {
+    const isActive = Number(button.dataset.datasetId) === Number(activeId);
+    button.classList.toggle('btn--accent', isActive);
+    button.classList.toggle('btn--ghost', !isActive);
+    button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+  });
 }
 
 async function runGisp() {
