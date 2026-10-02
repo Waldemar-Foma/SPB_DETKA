@@ -1,0 +1,19 @@
+{
+  "id": 1,
+  "label": "Датасет 1",
+  "updated_at": "2026-10-02T14:03:48",
+  "notices": 23,
+  "products": 380,
+  "inserted": 23,
+  "removed": 25,
+  "notice_file": "Предзащита_Извещения_1.csv",
+  "product_file": "Предзащита_Потоварка_1.csv",
+  "suppliers": {
+    "file": "Поставщики_24-25.csv",
+    "rows": 1010138,
+    "unique_suppliers": 44188,
+    "inserted": 44188,
+    "updated": 0,
+    "semantic_profiles": 2000
+  }
+}

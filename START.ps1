@@ -1,4 +1,4 @@
-param(
+﻿param(
     [ValidateSet("local", "internet")]
     [string]$Mode = "local",
 
@@ -76,11 +76,16 @@ if ($DatasetPath) {
     $datasetSource = (Resolve-Path -LiteralPath $DatasetPath).Path
 } else {
     $parent = Split-Path -Parent $PSScriptRoot
-    $candidate = Get-ChildItem -LiteralPath $parent -File -Filter "RLT.Uni_*.zip" -ErrorAction SilentlyContinue |
-        Sort-Object LastWriteTime -Descending |
-        Select-Object -First 1
-    if ($candidate) {
-        $datasetSource = $candidate.FullName
+
+    # New dataset archive: prefer the copy inside the project,
+    # otherwise look for dataset.zip next to the project folder.
+    $projectDataset = Join-Path $PSScriptRoot "datasets\dataset.zip"
+    $parentDataset = Join-Path $parent "dataset.zip"
+
+    if (Test-Path -LiteralPath $projectDataset -PathType Leaf) {
+        $datasetSource = (Resolve-Path -LiteralPath $projectDataset).Path
+    } elseif (Test-Path -LiteralPath $parentDataset -PathType Leaf) {
+        $datasetSource = (Resolve-Path -LiteralPath $parentDataset).Path
     }
 }
 
@@ -103,7 +108,7 @@ if ($datasetSource) {
     Write-Host "[1/5] Using datasets\source.zip."
 } else {
     Write-Host "[1/5] No real dataset found. The application will use DEMO data." -ForegroundColor Yellow
-    Write-Host "      Put RLT.Uni_*.zip next to the project folder or pass its path to the BAT file."
+    Write-Host "      Put dataset.zip into the project datasets folder, next to the project folder, or pass its path to the BAT file."
 }
 
 $modelPath = Join-Path $PSScriptRoot "models\multilingual-e5-base-q4_k.gguf"
