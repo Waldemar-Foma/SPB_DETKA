@@ -1,0 +1,14 @@
+{
+    servers {
+        protocols h1 h2
+    }
+}
+
+neva-hub.space {
+    log {
+        output stdout
+        format console
+    }
+    encode zstd gzip
+    reverse_proxy app:5000
+}

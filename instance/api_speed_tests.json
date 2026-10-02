@@ -1,0 +1,18 @@
+[
+  {
+    "started_at": "2026-10-02T10:45:24",
+    "runs": 3,
+    "include_ai": false,
+    "total_ms": 40311,
+    "summary": {
+      "checks": 10,
+      "passed": 10,
+      "failed": 0,
+      "avg_ms": 1343.7,
+      "slowest": {
+        "label": "Группы по выручке",
+        "avg_ms": 3735.8
+      }
+    }
+  }
+]

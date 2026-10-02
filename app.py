@@ -49,6 +49,7 @@ def _register_blueprints(app: Flask) -> None:
     from backend.blueprints.contracts import bp as contracts_bp
     from backend.blueprints.auth import bp as auth_bp
     from backend.blueprints.admin import bp as admin_bp
+    from backend.blueprints.settings import bp as settings_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(dashboard_bp)
@@ -56,6 +57,7 @@ def _register_blueprints(app: Flask) -> None:
     app.register_blueprint(contracts_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(settings_bp)
 
 
 def _register_template_context(app: Flask) -> None:
@@ -114,7 +116,7 @@ def _register_stateful_cache_policy(app: Flask) -> None:
 
     @app.after_request
     def _no_store_stateful_pages(response):
-        if request.path.startswith(("/dashboard/", "/contracts/")):
+        if request.path.startswith(("/dashboard/", "/contracts/", "/auth/")):
             response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
             response.headers["Pragma"] = "no-cache"
             response.headers["Expires"] = "0"

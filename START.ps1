@@ -1,4 +1,7 @@
 param(
+    [ValidateSet("local", "internet")]
+    [string]$Mode = "local",
+
     [Parameter(Position=0)]
     [string]$DatasetPath = ""
 )
@@ -17,8 +20,9 @@ function Test-DockerEngine {
     return ($LASTEXITCODE -eq 0)
 }
 
+$modeLabel = if ($Mode -eq "internet") { "INTERNET / Caddy" } else { "LOCAL" }
 Write-Host "==============================================================="
-Write-Host "  Procurement service - Docker startup"
+Write-Host "  Procurement service - $modeLabel"
 Write-Host "==============================================================="
 Write-Host ""
 
@@ -41,7 +45,7 @@ if (-not (Test-DockerEngine)) {
         }
     }
     if (-not $started) {
-        Fail "Docker Desktop is installed but could not be started automatically. Start it manually and run START.bat again."
+        Fail "Docker Desktop is installed but could not be started automatically. Start it manually and try again."
     }
 
     for ($i = 0; $i -lt 90; $i++) {
@@ -99,7 +103,7 @@ if ($datasetSource) {
     Write-Host "[1/5] Using datasets\source.zip."
 } else {
     Write-Host "[1/5] No real dataset found. The application will use DEMO data." -ForegroundColor Yellow
-    Write-Host "      Put RLT.Uni_*.zip next to the project folder or pass its path to START.bat."
+    Write-Host "      Put RLT.Uni_*.zip next to the project folder or pass its path to the BAT file."
 }
 
 $modelPath = Join-Path $PSScriptRoot "models\multilingual-e5-base-q4_k.gguf"
@@ -130,16 +134,23 @@ $composeArgs = @("-f", (Join-Path $PSScriptRoot "docker-compose.yml"))
 if (Test-Path -LiteralPath $modelPath -PathType Leaf) {
     $composeArgs += @("-f", (Join-Path $PSScriptRoot "docker-compose.e5.yml"))
 }
+if ($Mode -eq "internet") {
+    $internetCompose = Join-Path $PSScriptRoot "docker-compose.internet.yml"
+    $caddyFile = Join-Path $PSScriptRoot "Caddyfile"
+    if (-not (Test-Path -LiteralPath $internetCompose)) { Fail "docker-compose.internet.yml is missing." }
+    if (-not (Test-Path -LiteralPath $caddyFile)) { Fail "Caddyfile is missing." }
+    $composeArgs += @("-f", $internetCompose)
+}
 
 Write-Host "[3/5] Building and starting containers..."
-$upArgs = @("compose") + $composeArgs + @("up", "-d", "--build")
+$upArgs = @("compose") + $composeArgs + @("up", "-d", "--build", "--remove-orphans")
 & docker @upArgs
 if ($LASTEXITCODE -ne 0) {
     Write-Host ""
     Write-Host "[ERROR] docker compose up failed." -ForegroundColor Red
     $psArgs = @("compose") + $composeArgs + @("ps")
     & docker @psArgs
-    $logArgs = @("compose") + $composeArgs + @("logs", "--tail=120", "app")
+    $logArgs = @("compose") + $composeArgs + @("logs", "--tail=160")
     & docker @logArgs
     exit 1
 }
@@ -168,19 +179,32 @@ if (-not $ready) {
     Write-Host "[ERROR] The web application did not become ready within 25 minutes." -ForegroundColor Red
     $psArgs = @("compose") + $composeArgs + @("ps")
     & docker @psArgs
-    $logArgs = @("compose") + $composeArgs + @("logs", "--tail=160", "app")
+    $logArgs = @("compose") + $composeArgs + @("logs", "--tail=180")
     & docker @logArgs
     exit 1
 }
 
-Write-Host "[5/5] Ready. Opening http://127.0.0.1:5000/auth/login"
-Start-Process "http://127.0.0.1:5000/auth/login"
+if ($Mode -eq "internet") {
+    $openUrl = "https://neva-hub.space:18443/auth/login"
+    Write-Host "[5/5] App is ready. Caddy publishes it at $openUrl"
+    Write-Host "      Local health URL remains http://127.0.0.1:5000"
+    Write-Host "      For automatic TLS, the previous network setup must still forward TCP 80 to this PC."
+    Write-Host "      External TCP 18443 must reach this PC on port 18443."
+    Start-Process $openUrl
+} else {
+    $openUrl = "http://127.0.0.1:5000/auth/login"
+    Write-Host "[5/5] Ready. Opening $openUrl"
+    Start-Process $openUrl
+}
+
 Write-Host ""
-Write-Host "Web:   http://127.0.0.1:5000"
-Write-Host "Admin: admin@local.test / admin2026"
-Write-Host ""
-Write-Host "Qwen and all-minilm are prepared by Ollama on first run.
-FAISS candidate search status is available in Admin."
+Write-Host "Admin: admin@local.test / Admin2026!"
+if ($Mode -eq "internet") {
+    Write-Host "Public: https://neva-hub.space:18443"
+    Write-Host "Caddy logs: docker compose -f docker-compose.yml -f docker-compose.e5.yml -f docker-compose.internet.yml logs -f caddy"
+} else {
+    Write-Host "Local: http://127.0.0.1:5000"
+}
 Write-Host ""
 $psArgs = @("compose") + $composeArgs + @("ps")
 & docker @psArgs
