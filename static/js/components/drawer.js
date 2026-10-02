@@ -1,13 +1,22 @@
 import { $, h, icon } from '../utils/dom.js';
-import { getSupplierDetails, refreshExternalReputation } from '../api/suppliers.js';
+import { getSupplierDetails, getSupplierExplanation, refreshExternalReputation } from '../api/suppliers.js';
 import { selectSupplier } from '../api/procurement.js';
 import { toast } from './toast.js';
 
 export async function openDrawer(inn, procurement) {
   const drawer=$('#right-drawer'); if(!drawer)return;
-  document.body.classList.add('is-drawer-open'); drawer.innerHTML='<div class="drawer__body"><div class="skeleton" style="height:240px"></div></div>';
-  try { const data=await getSupplierDetails(inn,{procurement_id:procurement?.procurement_id}); drawer.innerHTML=''; drawer.append(content(data,procurement)); }
-  catch(e){drawer.innerHTML=`<div class="drawer__body"><p>Не удалось загрузить компанию: ${escapeHtml(e.message)}</p></div>`;}
+  document.body.classList.add('is-drawer-open');
+  drawer.dataset.inn=String(inn);
+  drawer.innerHTML='<div class="drawer__body"><div class="skeleton" style="height:240px"></div></div>';
+  try {
+    const data=await getSupplierDetails(inn,{procurement_id:procurement?.procurement_id});
+    if(drawer.dataset.inn!==String(inn)) return;
+    drawer.innerHTML='';
+    drawer.append(content(data,procurement));
+    // Все факты и метрики уже отображены. Qwen запускается отдельно и не блокирует досье.
+    if(procurement?.procurement_id) hydrateExplanation(drawer, data, procurement).catch(()=>{});
+  }
+  catch(e){if(drawer.dataset.inn===String(inn)) drawer.innerHTML=`<div class="drawer__body"><p>Не удалось загрузить компанию: ${escapeHtml(e.message)}</p></div>`;}
 }
 export function closeDrawer(){ document.body.classList.remove('is-drawer-open'); }
 
@@ -24,13 +33,31 @@ function content(data, procurement){
 }
 
 function explanation(data){
-  const ai=data.ai_explanation||{};
-  const isQwen=ai.source==='qwen2.5:3b';
-  return h('section',{class:'drawer__section'},
+  return h('section',{class:'drawer__section',id:'supplier-ai-explanation'},
     h('h3',{class:'drawer__section-title'},icon('sparkles'),'Почему подходит'),
-    h('div',{class:`ai-explanation-source ${isQwen?'is-ai':'is-fallback'}`},isQwen?'Объяснение сформировано локальной Qwen':'Показано объяснение по рассчитанным метрикам'),
-    h('p',{class:'drawer-simple-text'},ai.text||'Объяснение недоступно.')
+    h('div',{class:'ai-explanation-source is-loading'},'Qwen формирует объяснение…'),
+    h('p',{class:'drawer-simple-text'},'Метрики и факты уже готовы. Персональное объяснение появится здесь автоматически.')
   );
+}
+
+async function hydrateExplanation(drawer, data, procurement){
+  const section=drawer.querySelector('#supplier-ai-explanation');
+  if(!section)return;
+  const source=section.querySelector('.ai-explanation-source');
+  const text=section.querySelector('.drawer-simple-text');
+  try{
+    const ai=await getSupplierExplanation(data.inn,{procurement_id:procurement.procurement_id});
+    if(drawer.dataset.inn!==String(data.inn))return;
+    const isQwen=ai.source==='qwen2.5:3b';
+    source.className=`ai-explanation-source ${isQwen?'is-ai':'is-fallback'}`;
+    source.textContent=isQwen?'Объяснение сформировано локальной Qwen':'Показано объяснение по рассчитанным метрикам';
+    text.textContent=ai.text||'Объяснение недоступно.';
+  }catch(error){
+    if(drawer.dataset.inn!==String(data.inn))return;
+    source.className='ai-explanation-source is-fallback';
+    source.textContent='Объяснение временно недоступно';
+    text.textContent='Все рассчитанные метрики выше актуальны. Повторно открыть карточку можно позже.';
+  }
 }
 function metrics(data){ const m=data.metrics||{}, s=data.scoring_breakdown||{}; return h('section',{class:'drawer__section'},h('h3',{class:'drawer__section-title'},icon('chart-bar'),'Главное'),h('div',{class:'simple-metrics'},
   metric('Совпадение',`${s.total??0}%`), metric('По смыслу',`${s.semantic??0}%`), metric('Опыт в категории',`${s.category_experience??0}%`), metric('Win rate',m.win_rate==null?'Нет данных':`${m.win_rate}%`), metric('Отзывы',m.reviews_count?`${m.rating}/5 (${m.reviews_count})`:'Пока нет'), metric('Логистика',m.logistics?`${m.logistics.score}%`:'—')
@@ -45,10 +72,22 @@ function external(data){
 function renderExternal(host,items){host.innerHTML='';if(!items.length){host.append(h('p',{class:'drawer-hint'},'Внешние упоминания ещё не загружены.'));return;}items.forEach(x=>host.append(h('a',{class:'external-mention',href:x.url,target:'_blank',rel:'noopener'},h('strong',{},x.title||x.source),h('span',{},x.snippet||x.source))));}
 function contacts(data){ if(data.contacts_locked)return h('section',{class:'drawer__section contacts-locked'},h('h3',{class:'drawer__section-title'},icon('address-book'),'Контакты'),h('p',{},'Контактная информация откроется после выбора этой компании исполнителем.')); const c=data.contacts||{}; return h('section',{class:'drawer__section'},h('h3',{class:'drawer__section-title'},icon('address-book'),'Контакты исполнителя'),h('div',{class:'contact-list'},row('phone',c.phone),row('envelope',c.email),row('globe',c.website),row('map-marker-alt',c.address||data.region))); }
 function selection(data,procurement){
-  const locked=Boolean(procurement?.selected_supplier_inn)||procurement?.status!=='matching';
+  const closed=!['matching','selected'].includes(procurement?.status||'') || Boolean(procurement?.completed_at) || Boolean(procurement?.archived_at);
   const selected=String(procurement?.selected_supplier_inn||'')===String(data.inn);
-  const btn=h('button',{class:'btn btn--accent btn--block',type:'button',disabled:locked,onClick:async()=>{btn.disabled=true;btn.textContent='Сохраняем…';try{const result=await selectSupplier(procurement.procurement_id,data.inn);procurement.selected_supplier_inn=result.selected_supplier_inn;procurement.status='selected';toast('Исполнитель выбран. Контакты открыты в заявке.','success');window.location.replace(result.details_url);}catch(e){btn.disabled=false;btn.textContent='Выбрать исполнителя';toast(e.message,'error');}}},selected?'Исполнитель выбран':(locked?'Выбор по заявке закрыт':'Выбрать исполнителя'));
-  return h('div',{class:'drawer__sticky'},h('p',{class:'drawer-selection-note'},locked?'После выбора вернуться к подбору по этой заявке нельзя.':'Система рекомендует, но решение принимаете вы.'),btn);
+  const replacing=Boolean(procurement?.selected_supplier_inn) && !selected;
+  const defaultLabel=selected?'Текущий исполнитель':(replacing?'Выбрать вместо текущего':'Выбрать исполнителя');
+  const btn=h('button',{class:'btn btn--accent btn--block',type:'button',disabled:closed||selected,onClick:async()=>{
+    if(replacing && !window.confirm('Заменить выбранного исполнителя на эту компанию?')) return;
+    btn.disabled=true;btn.textContent='Сохраняем…';
+    try{
+      const result=await selectSupplier(procurement.procurement_id,data.inn);
+      procurement.selected_supplier_inn=result.selected_supplier_inn;procurement.status='selected';
+      toast(result.replaced_supplier_inn?'Исполнитель заменён. Контакты обновлены.':'Исполнитель выбран. Контакты открыты в заявке.','success');
+      window.location.replace(result.details_url);
+    }catch(e){btn.disabled=false;btn.textContent=defaultLabel;toast(e.message,'error');}
+  }},closed?'Выбор по заявке закрыт':defaultLabel);
+  const note=closed?'После завершения заказа менять исполнителя нельзя.':(selected?'Эта компания выбрана сейчас. До завершения заказа вы можете вернуться на карту и заменить её.':'Система рекомендует кандидатов, окончательное решение принимаете вы. До завершения заказа выбор можно изменить.');
+  return h('div',{class:'drawer__sticky'},h('p',{class:'drawer-selection-note'},note),btn);
 }
 const pill=t=>h('span',{},t); const metric=(l,v)=>h('div',{class:'simple-metric'},h('small',{},l),h('strong',{},v)); const row=(i,v)=>h('div',{class:'contact-list__row'},icon(i),h('span',{},v||'Не найдено в открытых данных'));
 function escapeHtml(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));}

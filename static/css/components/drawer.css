@@ -530,3 +530,13 @@
   opacity: .7;
 }
 .ai-explanation-source.is-fallback { opacity: .82; }
+.ai-explanation-source.is-loading::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  animation: ai-explanation-spin .8s linear infinite;
+}
+@keyframes ai-explanation-spin { to { transform: rotate(360deg); } }

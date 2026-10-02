@@ -116,17 +116,17 @@ function Row(item, onOpen, selectedInn = null) {
       h('div', { class: 'cell-experience' },
         h('div', { class: 'cell-experience__head' },
           h('span', {}, 'контрактов'),
-          h('b', {}, String(item.contracts_count)),
+          h('b', {}, String(item.contracts_count ?? item.wins_count ?? 0)),
         ),
         h('div', { class: 'progress progress--thin' },
           h('div', {
             class: 'progress__fill progress__fill--accent',
-            dataset: { value: Math.min(100, (item.contracts_count || 0) * 5) },
+            dataset: { value: Math.min(100, (item.contracts_count ?? item.wins_count ?? 0) * 5) },
           }),
         ),
         h('span', {
           style: 'font-size:11px;color:var(--color-text-subtle);margin-top:2px',
-        }, `на ${formatMln(item.contracts_sum_mln)}`),
+        }, `на ${formatMln(Number(item.contracts_sum_mln) || 0)}`),
       ),
     ),
 
@@ -137,7 +137,7 @@ function Row(item, onOpen, selectedInn = null) {
           `${item.score}%`),
         h('span', {
           style: 'font-size:11px;color:var(--color-text-subtle)',
-        }, item.relevance_label.replace(' релевантность', '')),
+        }, String(item.relevance_label || '').replace(' релевантность', '')),
       ),
     ),
 

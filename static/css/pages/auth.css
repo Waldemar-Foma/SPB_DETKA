@@ -21,3 +21,22 @@
 .auth-demo { margin-top:18px; padding:12px 14px; border-radius:12px; background:#f7f5ff; color:#4c3fb3; font-size:13px; }
 .auth-note { margin:18px 0 0; color:#7c8495; font-size:12px; line-height:1.5; }
 @media(max-width:680px){ .auth-form--grid{grid-template-columns:1fr}.auth-field--full{grid-column:auto}.auth-card{padding:24px} }
+.auth-password-wrap { position:relative; display:block; }
+.auth-password-wrap input { padding-right:92px; }
+.auth-password-toggle { position:absolute; right:7px; top:50%; transform:translateY(-50%); border:0; background:transparent; color:#5145cd; font:inherit; font-size:12px; font-weight:800; cursor:pointer; padding:7px 8px; border-radius:8px; }
+.auth-password-toggle:hover { background:rgba(99,91,255,.08); }
+.auth-password-toggle:focus-visible { outline:2px solid #635bff; outline-offset:1px; }
+.auth-password-rules { padding:13px 14px; border:1px solid #e4e8f0; border-radius:12px; background:#f8f9fc; color:#667085; font-size:12px; }
+.auth-password-rules > strong { display:block; color:#344054; margin-bottom:9px; }
+.auth-password-rules__grid { display:grid; grid-template-columns:1fr 1fr; gap:7px 14px; }
+.auth-password-rules [data-password-check]::before { content:'•'; display:inline-block; width:14px; font-weight:900; color:#98a2b3; }
+.auth-password-rules [data-password-check].is-ok { color:#067647; }
+.auth-password-rules [data-password-check].is-ok::before { content:'✓'; color:#12b76a; }
+.auth-password-rules [data-password-check].is-bad { color:#b42318; }
+.auth-password-rules [data-password-check].is-bad::before { content:'×'; color:#f04438; }
+html[data-theme="dark"] .auth-password-rules { background:#17171b; border-color:#303036; color:#a9a9b2; }
+html[data-theme="dark"] .auth-password-rules > strong { color:#f3f3f5; }
+@media(max-width:680px){ .auth-password-rules__grid{grid-template-columns:1fr} }
+.auth-logo { display:block; width:56px; height:56px; border-radius:14px; box-shadow:0 0 0 1px #e4e8f0, 0 6px 18px rgba(19,28,55,.10); }
+html[data-theme="dark"] .auth-logo { box-shadow:0 0 0 1px #303036; }
+.auth-copy { margin-top:20px; }

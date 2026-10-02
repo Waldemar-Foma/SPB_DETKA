@@ -673,3 +673,20 @@ body.is-dragging-widget {
     justify-self: stretch;
   }
 }
+
+/* Список (режим «Список»): компактные ячейки, чтобы таблица помещалась на 1280px
+   вместе с боковым меню, без горизонтальной прокрутки. */
+.dash-list .shortlist thead th,
+.dash-list .shortlist td {
+  padding-left: var(--space-4);
+  padding-right: var(--space-4);
+}
+.dash-list .shortlist thead th:first-child,
+.dash-list .shortlist td:first-child { padding-left: var(--space-6); }
+.dash-list .shortlist thead th:last-child,
+.dash-list .shortlist td:last-child { padding-right: var(--space-6); }
+.dash-list .shortlist thead th { white-space: normal; line-height: 1.3; }
+.dash-list .cell-experience { min-width: 130px; }
+.dash-list .cell-score { min-width: 0; }
+.dash-list .cell-region__name { min-width: 120px; }
+.dash-list .shortlist td:last-child .btn { min-width: 112px; }

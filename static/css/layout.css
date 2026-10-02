@@ -149,7 +149,21 @@ body.is-drawer-open { overflow: hidden; }
   .app-sidebar { display: none; }
   .app-drawer { width: 100%; max-width: 480px; }
 }
-.app-sidebar--no-logo .app-sidebar__menu{padding-top:4px}
 
 /* v10: досье контрагента всегда выше плавающих карточек карты. */
 .app-drawer { z-index: 900; }
+
+/* Логотип сайта в верхней части навбара */
+.app-sidebar__brand {
+  display: block;
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  margin-bottom: var(--space-6);
+  border-radius: var(--radius-md);
+  box-shadow: 0 0 0 1px var(--color-border), 0 2px 8px rgb(0 0 0 / .06);
+  overflow: hidden;
+  transition: transform var(--dur-fast) var(--ease);
+}
+.app-sidebar__brand:hover { transform: scale(1.06); }
+.app-sidebar__brand img { display: block; width: 100%; height: 100%; }

@@ -70,14 +70,14 @@
 .ops-check--offline .ops-check__icon { color: var(--color-text-muted); }
 .ops-check--offline { opacity: .72; }
 
-.ops-health-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 20px 18px; }
+.ops-health-grid { display: grid; grid-template-columns: 1fr; gap: 10px; padding: 0 20px 18px; }
 .ops-health { display: flex; gap: 10px; align-items: center; padding: 12px; border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-surface-alt); }
 .ops-health__dot { width: 10px; height: 10px; border-radius: 50%; background: var(--color-text-muted); box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-text-muted) 16%, transparent); }
 .ops-health.is-ok .ops-health__dot { background: #12b76a; box-shadow: 0 0 0 4px rgba(18,183,106,.15); }
 .ops-health.is-bad .ops-health__dot { background: #f04438; box-shadow: 0 0 0 4px rgba(240,68,56,.13); }
-.ops-health > div { display: grid; gap: 3px; }
-.ops-health strong { font-size: 13px; color: var(--color-text-strong); }
-.ops-health span { font-size: 11px; color: var(--color-text-muted); overflow-wrap: anywhere; }
+.ops-health > div { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1; }
+.ops-health strong { flex: 0 0 auto; font-size: 13px; color: var(--color-text-strong); white-space: nowrap; }
+.ops-health > div > span { min-width: 0; font-size: 11px; color: var(--color-text-muted); overflow-wrap: anywhere; line-height: 1.35; }
 .ops-log { margin: 0 20px 20px; min-height: 92px; max-height: 220px; overflow: auto; padding: 14px; border-radius: 12px; background: #0c0d10; color: #d6f5dc; font: 12px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace; white-space: pre-wrap; }
 .ops-log--large { min-height: 180px; }
 .ops-tags { display: flex; gap: 8px; flex-wrap: wrap; padding: 0 20px 22px; }
@@ -235,3 +235,60 @@ html[data-theme="dark"] .cabinet-identity { background: var(--color-surface-alt)
   .security-review-metrics { grid-template-columns: 1fr; }
   .security-review-card__head { align-items: center; }
 }
+.ops-health.is-warn .ops-health__dot { background:#f79009; box-shadow:0 0 0 4px rgba(247,144,9,.15); }
+.ops-health.is-idle .ops-health__dot { background:#98a2b3; box-shadow:0 0 0 4px rgba(152,162,179,.14); }
+
+
+/* v16: технические подписи статуса больше не отображаются в health-карточках.
+   Цвет точки показывает состояние; подробность доступна в title/aria-label. */
+.ops-health > div > span { display: none !important; }
+.ops-health > div { min-width: 0; }
+.ops-health strong { overflow: hidden; text-overflow: ellipsis; }
+
+/* --- Админ: вкладки и «Тесты АПИ» ---------------------------------------- */
+.ops-kpis[hidden] { display: none; }
+.admin-tabs { align-self: flex-start; }
+.apitest-controls { align-items: flex-end; }
+.apitest-field { display: grid; gap: 4px; font-size: 12px; font-weight: 700; color: var(--color-text-muted); }
+.apitest-field select {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+  border-radius: 10px;
+  padding: 9px 10px;
+  font: inherit;
+}
+.apitest-check { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--color-text); cursor: pointer; padding-bottom: 9px; }
+.apitest-table td, .apitest-table th { white-space: nowrap; }
+.apitest-table tbody tr { cursor: default; }
+.apitest-group td {
+  padding-top: var(--space-4);
+  padding-bottom: var(--space-2);
+  font-size: var(--fs-2xs);
+  font-weight: var(--fw-semibold);
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+  background: var(--color-surface-soft);
+}
+.apitest-path { font-size: 12px; color: var(--color-text-muted); }
+.apitest-num { font-variant-numeric: tabular-nums; }
+.apitest-speed { display: flex; align-items: center; gap: 10px; min-width: 190px; }
+.apitest-speed .progress { flex: 1; }
+.apitest-failed { background: rgba(240, 68, 56, .06); }
+.apitest-error { font-size: 11px; color: var(--color-danger-text, #b42318); white-space: normal; }
+
+/* --- Настройки аккаунта ---------------------------------------------------- */
+.settings-form { padding: 22px 32px 28px; }
+.settings-form.ops-form--grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.settings-note { margin: 0; grid-column: 1 / -1; }
+.ops-field__error { min-height: 0; font-size: 12px; color: var(--color-danger-text, #b42318); }
+.ops-field__error:empty { display: none; }
+.ops-field input.is-invalid { border-color: var(--color-danger-text, #f04438); }
+.settings-identity { display: flex; align-items: center; gap: 14px; min-width: 260px; padding: 12px 16px; border-radius: 16px; background: var(--color-surface-alt); border: 1px solid var(--color-border); }
+.settings-identity__avatar { display: grid; place-items: center; width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; background: var(--color-accent); color: #fff; font-weight: 800; font-size: 15px; }
+.settings-identity__text { display: grid; gap: 2px; min-width: 0; }
+.settings-identity__text strong { color: var(--color-text-strong); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.settings-identity__text span { font-size: 12px; color: var(--color-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.settings-identity__role { color: var(--color-accent) !important; font-weight: 700; }
+@media (max-width: 760px) { .settings-form.ops-form--grid { grid-template-columns: 1fr; } }

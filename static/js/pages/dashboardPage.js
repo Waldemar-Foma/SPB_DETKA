@@ -1,8 +1,9 @@
-import { $, h, icon } from '../utils/dom.js';
+import { $ } from '../utils/dom.js';
 import { analyzeProcurement, getSuppliersFor } from '../api/procurement.js';
 import { initMapView } from '../components/mapView.js';
 import { openDrawer } from '../components/drawer.js';
 import { renderRelevanceChart, renderRegionsChart, renderTypesChart } from '../components/relevanceWidgets.js';
+import { renderShortlist, renderEmptyTable } from '../components/shortlistTable.js';
 import { toast } from '../components/toast.js';
 
 export async function initDashboardPage() {
@@ -17,14 +18,15 @@ export async function initDashboardPage() {
   const params = new URLSearchParams(location.search);
   const procurementId = params.get('procurement');
   if (!procurementId) { location.replace('/contracts/'); return; }
-  const state = { procurement: null, items: [], types: new Set() };
+  const state = { procurement: null, items: [], types: new Set(), query: '' };
   state.procurement = await analyzeProcurement(procurementId);
-  if (state.procurement.selected_supplier_inn || state.procurement.status !== 'matching') {
+  if (!['matching', 'selected'].includes(state.procurement.status)) {
     window.location.replace(`/contracts/${encodeURIComponent(state.procurement.procurement_id)}`);
     return;
   }
   renderContext(state.procurement);
   bindFilters(state);
+  bindSearch(state);
   bindSelection(state);
   await loadFeed(state);
 }
@@ -67,29 +69,26 @@ function renderSummary(state) {
 }
 
 function renderList(state) {
-  const host=$('#top5-list'); if(!host)return; host.innerHTML='';
-  if(!state.items.length){ host.append(h('div',{class:'top5-empty'},'Нет компаний для текущего фильтра.')); return; }
-  state.items.forEach((item,index)=>host.append(topCard(item,index+1,()=>openDrawer(item.inn,state.procurement),state.procurement.selected_supplier_inn)));
+  const tbody = $('#shortlist-body'); if (!tbody) return;
+  const subtitle = $('#list-subtitle');
+  const total = state.items.length;
+  const q = state.query.trim().toLowerCase();
+  const visible = q
+    ? state.items.filter((x) => [x.name, x.inn, x.region, x.company_type].some((v) => String(v || '').toLowerCase().includes(q)))
+    : state.items;
+  if (subtitle) {
+    subtitle.textContent = total
+      ? `Топ-${total} компаний сформирован ИИ. Финальный выбор всегда за вами.`
+      : 'Нет компаний для текущего фильтра.';
+  }
+  if (!visible.length) { renderEmptyTable(tbody); return; }
+  renderShortlist(tbody, visible, (inn) => openDrawer(inn, state.procurement), state.procurement.selected_supplier_inn);
 }
 
-function topCard(item, n, open, selectedInn) {
-  const m=item.metrics||{}; const selected=String(selectedInn||'')===String(item.inn);
-  const rating=m.reviews_count ? `${m.rating}/5 · ${m.reviews_count} отзыв.` : 'Отзывов пока нет';
-  const win=m.win_rate == null ? 'нет данных' : `${m.win_rate}%`;
-  return h('article',{class:`top5-card ${selected?'is-selected':''}`,onClick:open},
-    h('div',{class:'top5-card__rank'},String(n)),
-    h('div',{class:'top5-card__main'},
-      h('div',{class:'top5-card__title'},h('strong',{},item.name),selected?h('span',{class:'badge badge--local'},'Выбран'):null),
-      h('div',{class:'top5-card__meta'},`${item.company_type} · ${item.region}`),
-      h('div',{class:'top5-card__metrics'},
-        miniMetric('Совпадение',`${item.score}%`), miniMetric('Win rate',win), miniMetric('Отзывы',rating), miniMetric('Логистика',`${m.geography??'—'}%`)
-      ),
-      item.workload_warning?h('div',{class:'top5-card__warning'},icon('exclamation-triangle'),item.workload_warning):null,
-    ),
-    h('button',{class:'btn btn--ghost btn--sm',type:'button',onClick:(e)=>{e.stopPropagation();open();}},'Подробнее')
-  );
+function bindSearch(state) {
+  const input = $('#list-search');
+  input?.addEventListener('input', () => { state.query = input.value; renderList(state); });
 }
-const miniMetric=(label,value)=>h('span',{class:'top5-metric'},h('small',{},label),h('b',{},value));
 
 function bindFilters(state) {
   const modal=$('#match-filter');
