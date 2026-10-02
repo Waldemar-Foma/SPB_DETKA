@@ -18,6 +18,29 @@
     <article class="cabinet-stat"><span>Пользователей</span><strong id="admin-count-users">{{ counts.users }}</strong></article>
   </section>
 
+  <section class="panel glass ops-panel">
+    <header class="panel__head">
+      <div>
+        <h2 class="panel__title">Переключение закупочного датасета</h2>
+        <p class="panel__subtitle">Каждая кнопка полностью заменяет только импортированные закупки своей парой «Извещения + Потоварка» из <code>datasets/dataset.zip</code>. Пользовательские заявки, поставщики и история компаний сохраняются.</p>
+      </div>
+      <span class="badge badge--supplier" id="admin-active-dataset">{{ dataset_state.label }}</span>
+    </header>
+    <div class="panel__actions" style="flex-wrap: wrap; gap: 10px;">
+      {% for item in datasets %}
+        <button class="btn btn--{{ 'accent' if dataset_state.id == item.id else 'ghost' }} btn--sm admin-dataset-btn"
+                type="button" data-dataset-id="{{ item.id }}"
+                title="{{ item.notice_file }} + {{ item.product_file }}">
+          Датасет {{ item.id }}
+          <span class="ops-muted">({{ item.notices }} закупок)</span>
+        </button>
+      {% endfor %}
+    </div>
+    <div class="ops-note" id="admin-dataset-note">
+      {% if dataset_state.id %}Активен датасет {{ dataset_state.id }} · загружено {{ dataset_state.inserted or 0 }} закупок.{% else %}Датасет из dataset.zip ещё не выбирался.{% endif %}
+    </div>
+  </section>
+
   <section class="ops-two-col">
     <article class="panel glass ops-panel">
       <header class="panel__head"><div><h2 class="panel__title">Локальные нейросети</h2><p class="panel__subtitle">FAISS + all-minilm для подбора кандидатов и qwen2.5:3b для понятных объяснений результата.</p></div><button class="btn btn--accent btn--sm" id="admin-test-models" type="button">Тест инференса</button></header>
@@ -39,22 +62,6 @@
         {% if latest_sync %}Последнее обогащение: {{ latest_sync.status }} · строк {{ latest_sync.rows_total }} · совпало {{ latest_sync.matched_suppliers }}{% else %}Синхронизация ещё не выполнялась.{% endif %}
       </div>
     </article>
-  </section>
-
-  <section class="panel glass ops-panel">
-    <header class="panel__head">
-      <div>
-        <h2 class="panel__title">Обогащение компаний</h2>
-        <p class="panel__subtitle">Тестовые извещения/ТРУ с Yandex Disk дополняют реальную историю компаний. DaData, если задан токен, добавляет название, ОГРН, ОКВЭД, адрес и регион прямо в основную БД.</p>
-      </div>
-      <button class="btn btn--accent btn--sm" id="admin-run-company-enrichment" type="button">Синхронизировать данные</button>
-    </header>
-    <div class="ops-health-grid">
-      <div class="ops-health is-idle" id="health-company-enrichment"><span class="ops-health__dot"></span><div><strong>Тестовые данные + DaData</strong></div></div>
-      <div class="ops-health is-idle" id="health-dadata-config"><span class="ops-health__dot"></span><div><strong>DaData token</strong></div></div>
-    </div>
-    <div class="ops-note">Повторный запуск безопасен: история и DaData кэшируются, а уже существующие контракты не дублируются.</div>
-    <pre class="ops-log" id="company-enrichment-log">Журнал пока пуст.</pre>
   </section>
 
   <section class="panel glass ops-panel">
