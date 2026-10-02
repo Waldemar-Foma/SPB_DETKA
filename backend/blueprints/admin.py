@@ -17,6 +17,7 @@ from backend.models import Procurement, RegistrySync, Supplier, SupplierContract
 from backend.services.auth import admin_required, current_user
 from backend.services.local_ai import LLM_MODEL, LLM_URL
 from backend.services.candidate_retrieval import status as candidate_status, search_text as candidate_search
+from backend.services.dataset_switcher import active_dataset, inspect_datasets, switch_dataset
 
 bp = Blueprint("admin", __name__, url_prefix="/admin")
 ROOT = Path(__file__).resolve().parents[2]
@@ -168,6 +169,8 @@ def page():
         data_mode=data_mode,
         latest_sync=_latest_sync(),
         gisp_file=_file_info(GISP_FILE),
+        dataset_state=active_dataset(),
+        datasets=inspect_datasets(),
     )
 
 
@@ -184,6 +187,8 @@ def status_api():
             "users": User.query.count(),
             "gisp_manufacturers": Supplier.query.filter_by(is_gisp_manufacturer=True).count(),
             "enriched_suppliers": Supplier.query.filter(Supplier.enrichment_updated_at.isnot(None)).count(),
+            "active_dataset": active_dataset(),
+            "datasets": inspect_datasets(),
         },
         "models": _quick_models(),
         "gisp": {
@@ -199,6 +204,25 @@ def status_api():
             "dadata_configured": bool((os.getenv("DADATA_TOKEN") or "").strip()),
             "test_data_url": os.getenv("YANDEX_TEST_DATA_URL", "Yandex Disk / Тестовые данные_1140"),
         },
+    })
+
+
+@bp.post("/api/dataset/<int:dataset_id>/activate")
+@admin_required
+def activate_dataset(dataset_id: int):
+    try:
+        state = switch_dataset(dataset_id)
+    except (ValueError, FileNotFoundError) as exc:
+        return jsonify({"ok": False, "message": str(exc)}), 400
+    except Exception as exc:
+        db.session.rollback()
+        current_app.logger.exception("Dataset switch failed")
+        return jsonify({"ok": False, "message": f"Не удалось переключить датасет: {exc}"}), 500
+
+    return jsonify({
+        "ok": True,
+        "message": f"Датасет {dataset_id} активирован: {state['inserted']} закупок, {state.get('suppliers', {}).get('unique_suppliers', 0)} контрагентов.",
+        "dataset": state,
     })
 
 

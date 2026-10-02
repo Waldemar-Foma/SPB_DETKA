@@ -9,13 +9,14 @@ from sqlalchemy.orm import selectinload
 from backend.extensions import db
 from backend.models import Procurement, Supplier
 from backend.services.auth import customer_required, current_user
-from backend.services.geography import logistics_score
+from backend.services.geography import logistics_score, approx_supplier_coords
 from backend.services.matching_engine import build_tags, compute_score, relevance_label
 from backend.services.reputation import review_summary, workload_summary, invalidate_workload_cache
 from backend.services.request_lifecycle import touch
 from backend.services.role_classifier import classify_role
 from backend.services.semantic import warm_similarity_cache
 from backend.services.candidate_retrieval import search_procurement
+from backend.services.company_identity import enrich_top_supplier_identities
 
 bp = Blueprint("procurement", __name__)
 
@@ -155,6 +156,25 @@ def suppliers_for(procurement_number: str):
     )
     top = filtered[:TOP_LIMIT]
 
+    # Финальный TOP-5 уже определён. Только теперь запускаем сетевое обогащение
+    # по ИНН, чтобы оно не влияло на ranking и не делало десятки лишних запросов.
+    # Запрашиваются только компании с временным именем «Контрагент ИНН …».
+    top_inns = [str(item.get("inn") or "") for item in top if item.get("inn")]
+    top_suppliers = Supplier.query.filter(Supplier.inn.in_(top_inns)).all() if top_inns else []
+    identity_results = enrich_top_supplier_identities(top_suppliers)
+    refreshed = {str(s.inn): s for s in top_suppliers}
+    for item in top:
+        supplier = refreshed.get(str(item.get("inn") or ""))
+        if not supplier:
+            continue
+        item["name"] = supplier.name
+        item["region"] = supplier.region
+        lat = supplier.lat
+        lon = supplier.lon
+        if lat is None or lon is None:
+            lat, lon = approx_supplier_coords(supplier.inn, supplier.region or "Россия")
+        item["coords"] = {"lat": lat, "lon": lon}
+
     selected = Supplier.query.filter_by(inn=procurement.selected_supplier_inn).first() if procurement.selected_supplier_inn else None
     return jsonify({
         "items": top,
@@ -168,6 +188,11 @@ def suppliers_for(procurement_number: str):
             "selected_supplier_inn": procurement.selected_supplier_inn,
             "selected_supplier_name": selected.name if selected else None,
             "selected_at": procurement.selected_at.isoformat() if procurement.selected_at else None,
+            "identity_enrichment": {
+                "requested": len([s for s in top_suppliers if str(s.inn) in top_inns]),
+                "resolved_now": len(identity_results),
+                "resolved_inns": sorted(identity_results.keys()),
+            },
             "retrieval": {
                 "engine": retrieval.get("engine", "db-prefilter"),
                 "ok": bool(retrieval.get("ok")),
@@ -315,7 +340,10 @@ def _build_card(procurement: Procurement, supplier: Supplier, retrieval: dict | 
     return {
         **supplier.to_card(),
         "company_type": role,
-        "coords": {"lat": supplier.lat, "lon": supplier.lon},
+        "coords": (lambda point: {"lat": point[0], "lon": point[1]})(
+            (supplier.lat, supplier.lon) if supplier.lat is not None and supplier.lon is not None
+            else approx_supplier_coords(supplier.inn, supplier.region or "Россия")
+        ),
         "score": scores["total"],
         "relevance_label": relevance_label(scores["total"]),
         "tags": build_tags(procurement, supplier, scores),
