@@ -7,6 +7,7 @@
     <div><a class="request-back" href="{{ url_for('contracts.page') }}">← Мои заявки</a><h1>{{ procurement.title }}</h1><span class="request-status request-status--{{ procurement.status }}">{{ status_labels.get(procurement.status, procurement.status) }}</span></div>
     <div class="request-detail__actions">
       {% if procurement.status == 'matching' and not procurement.selected_supplier_inn %}<a class="btn btn--ghost" href="{{ url_for('dashboard.page', procurement=procurement.procurement_number) }}">Подобрать исполнителя</a>{% endif %}
+      {% if procurement.status == 'selected' and procurement.selected_supplier_inn %}<a class="btn btn--ghost" href="{{ url_for('dashboard.page', procurement=procurement.procurement_number) }}">Изменить исполнителя</a>{% endif %}
       <form method="post" action="{{ url_for('contracts.delete', number=procurement.procurement_number) }}" onsubmit="return confirm('Удалить заявку из рабочего списка?')"><button class="btn btn--ghost" type="submit">Удалить</button></form>
     </div>
   </div>

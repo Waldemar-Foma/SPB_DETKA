@@ -92,7 +92,7 @@ def test_private_pages_require_login(client):
 def test_registration_always_creates_customer(client, app):
     response = client.post('/auth/register', data={
         'full_name': 'Иван Петров', 'email': 'ivan@test.local', 'organization_inn': '7812345678',
-        'organization_name': 'ООО Тест', 'password': 'password123', 'password2': 'password123',
+        'organization_name': 'ООО Тест', 'password': 'Password1!', 'password2': 'Password1!',
         'account_role': 'supplier',  # malicious/obsolete field must be ignored
     }, follow_redirects=False)
     assert response.status_code in {302, 303}
@@ -216,25 +216,27 @@ def test_security_page_shows_reviews_from_completed_orders(client, app):
     assert 'Тестовый заказчик' in html
 
 
-def test_matching_is_locked_after_supplier_selected(client, app):
+def test_supplier_can_be_replaced_before_completion(client, app):
     uid = seed(app); number = create_user_request(app); login_as(client, uid)
     first = client.post(f'/api/v1/procurement/{number}/select', json={'supplier_inn': '7800000001'})
     assert first.status_code == 200
 
     dashboard = client.get(f'/dashboard/?procurement={number}', follow_redirects=False)
-    assert dashboard.status_code in {302, 303}
-    assert f'/contracts/{number}' in dashboard.headers.get('Location', '')
+    assert dashboard.status_code == 200
 
     feed = client.get(f'/api/v1/procurement/{number}/suppliers')
-    assert feed.status_code == 409
-    assert feed.get_json()['error']['code'] == 'matching_closed'
+    assert feed.status_code == 200
+    assert feed.get_json()['meta']['selected_supplier_inn'] == '7800000001'
 
     second = client.post(f'/api/v1/procurement/{number}/select', json={'supplier_inn': '7700000001'})
-    assert second.status_code == 409
-    assert second.get_json()['error']['code'] == 'selection_locked'
+    assert second.status_code == 200
+    payload = second.get_json()
+    assert payload['selected_supplier_inn'] == '7700000001'
+    assert payload['replaced_supplier_inn'] == '7800000001'
     with app.app_context():
         p = Procurement.query.filter_by(procurement_number=number).one()
-        assert p.selected_supplier_inn == '7800000001'
+        assert p.selected_supplier_inn == '7700000001'
+        assert p.status == 'selected'
 
 
 def test_matching_stays_locked_after_completion_and_delete(client, app):
@@ -242,9 +244,46 @@ def test_matching_stays_locked_after_completion_and_delete(client, app):
     client.post(f'/api/v1/procurement/{number}/select', json={'supplier_inn': '7800000001'})
     client.post(f'/contracts/{number}/complete', follow_redirects=False)
     assert client.get(f'/api/v1/procurement/{number}/suppliers').status_code == 409
+    replace = client.post(f'/api/v1/procurement/{number}/select', json={'supplier_inn': '7700000001'})
+    assert replace.status_code == 409
+    assert replace.get_json()['error']['code'] == 'selection_locked'
 
     client.post(f'/contracts/{number}/delete', follow_redirects=False)
     assert client.get(f'/api/v1/procurement/{number}/suppliers').status_code == 410
     dash = client.get(f'/dashboard/?procurement={number}', follow_redirects=False)
     assert dash.status_code in {302, 303}
     assert '/contracts/' in dash.headers.get('Location', '')
+
+
+def test_registration_password_policy(client, app):
+    weak_passwords = [
+        'short1!',          # too short/no uppercase
+        'password1!',      # no uppercase
+        'PASSWORD1!',      # no lowercase
+        'Password!',       # no digit
+        'Password1',       # no special
+        'ПарольAa1!',      # non-latin
+        'Password 1!',     # whitespace
+    ]
+    for idx, password in enumerate(weak_passwords):
+        response = client.post('/auth/register', data={
+            'full_name': 'Тест Пользователь',
+            'email': f'weak{idx}@test.local',
+            'organization_inn': '7812345678',
+            'organization_name': 'ООО Тест',
+            'password': password,
+            'password2': password,
+        })
+        assert response.status_code == 200
+        with app.app_context():
+            assert User.query.filter_by(email=f'weak{idx}@test.local').first() is None
+
+    response = client.post('/auth/register', data={
+        'full_name': 'Тест Пользователь',
+        'email': 'strong@test.local',
+        'organization_inn': '7812345678',
+        'organization_name': 'ООО Тест',
+        'password': 'StrongPass1!',
+        'password2': 'StrongPass1!',
+    }, follow_redirects=False)
+    assert response.status_code in {302, 303}

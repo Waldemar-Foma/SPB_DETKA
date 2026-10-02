@@ -1,11 +1,14 @@
-"""Понятное объяснение рекомендации на фактах, без галлюцинаций.
+"""Персональное объяснение рекомендации на фактах, без галлюцинаций.
 
-Qwen используется только как слой объяснимости. Если локальная модель недоступна,
-ответ содержит запрещённые письменности или выглядит слишком коротким/пустым,
-показывается детерминированное объяснение по тем же фактам.
+Qwen не участвует в выборе исполнителя: она получает уже рассчитанные метрики и
+превращает их в понятный текст. Для разных компаний ей передаются разные
+доказательства и разные стилистические инструкции, чтобы объяснения не звучали
+как одна и та же заготовка. Если модель недоступна или выдаёт мусор, работает
+детерминированный fallback.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import unicodedata
@@ -17,27 +20,46 @@ from .reputation import review_summary, workload_summary
 from .role_classifier import classify_role, role_reason
 
 SYSTEM_PROMPT = """Ты аналитик сервиса подбора контрагентов для заказчика.
-Сформируй персональное объяснение именно для ЭТОЙ компании и ЭТОЙ заявки.
-Пиши строго по-русски, обычной кириллицей, без японских, китайских, корейских и других посторонних символов.
-Формат: 3–5 предложений, примерно 60–110 слов, без markdown и списков.
+Объясни, почему КОНКРЕТНАЯ компания попала в рекомендации для КОНКРЕТНОЙ заявки.
+Пиши строго по-русски, обычной кириллицей. Не используй японские, китайские,
+корейские и другие посторонние символы.
 
-Обязательно:
-1) начни с конкретного соответствия запросу: профиль/специализация, смысловое совпадение или опыт в категории;
-2) приведи 1–2 подтверждающих факта из истории: победы, win rate, отзывы, опыт с этим заказчиком;
-3) отдельно оцени логистику и нагрузку, только если для них есть данные;
-4) если данных нет, прямо скажи «данных пока нет», а не додумывай.
+Требования к ответу:
+- 3–5 предложений, ориентир 60–110 слов, без markdown и списков;
+- текст должен быть персональным, а не шаблонным;
+- используй writing_style из JSON как композиционную подсказку и НЕ начинай все
+  ответы одинаково;
+- сначала свяжи предмет заявки с реальным профилем/историей компании;
+- приведи 2–3 конкретных факта: релевантные прошлые поставки/работы, победы,
+  win rate, опыт с этим заказчиком, отзывы, ОКПД2;
+- отдельно обозначь один практический нюанс: логистика, нагрузка или нехватка
+  данных;
+- если данных нет, честно скажи об этом;
+- similarity и score — это показатели совпадения, а не вероятность успеха;
+- не перечисляй все метрики подряд: объясняй человеческим языком.
 
 Запрещено:
-- придумывать контакты, сертификаты, склады, финансовые риски, отзывы или причины, которых нет в JSON;
-- называть компанию «лучшей», «идеальной», «гарантированно надёжной» или объявлять победителем;
-- использовать шаблонные фразы вроде «высокий рейтинг в категории исполнений»;
-- выдавать similarity/score за вероятность успеха.
+- придумывать контакты, склады, сертификаты, мощности, финансовые риски,
+  отзывы или факты, которых нет в JSON;
+- называть компанию «лучшей», «идеальной», «гарантированно надёжной»;
+- объявлять победителя;
+- писать канцелярские клише вроде «высокий рейтинг в категории исполнений»;
+- копировать один и тот же порядок фраз для разных компаний.
 
-Используй только факты из JSON. Числа округляй естественно и не перегружай текст метриками."""
+Используй только факты из JSON."""
 
 _REPAIR_PROMPT = """Перепиши текст строго на русском языке кириллицей.
-Не используй японские, китайские, корейские и другие посторонние письменности.
-Сохрани только факты из исходного JSON. 3–5 предложений, без markdown."""
+Убери японские, китайские, корейские и любые другие посторонние письменности.
+Сохрани только факты из исходного JSON. Сделай 3–5 естественных предложений,
+без markdown, без шаблонных клише и без придумывания новых фактов."""
+
+_STYLE_HINTS = (
+    "Начни с того, что именно в специализации компании совпадает с предметом заявки; затем подкрепи это статистикой и закончи практическим нюансом.",
+    "Начни с одного сильного факта из истории закупок компании; затем объясни смысловое соответствие заявке и только потом логистику или нагрузку.",
+    "Сначала кратко объясни причину попадания компании в топ, затем сопоставь прошлые работы с текущей потребностью и обозначь ограничение данных.",
+    "Начни с релевантного примера прошлой поставки или работы, если он есть; после него дай статистику, отзывы и практический вывод.",
+    "Построй текст через баланс плюсов и оговорок: сначала два факта в пользу компании, затем один фактор, который заказчику стоит уточнить до контакта.",
+)
 
 _EXPLANATION_CACHE: OrderedDict[str, dict] = OrderedDict()
 _CACHE_MAX = 512
@@ -46,6 +68,74 @@ _CACHE_MAX = 512
 def _short(value: str | None, limit: int) -> str:
     text = re.sub(r"\s+", " ", str(value or "")).strip()
     return text[:limit]
+
+
+def _tokens(*values: str | None) -> set[str]:
+    text = " ".join(str(v or "") for v in values).lower()
+    return {x for x in re.findall(r"[а-яёa-z0-9]+", text) if len(x) >= 4}
+
+
+def _style_for(procurement, supplier) -> dict:
+    raw = f"{getattr(procurement, 'procurement_number', '')}|{getattr(supplier, 'inn', '')}".encode("utf-8")
+    variant = int(hashlib.sha1(raw).hexdigest()[:8], 16) % len(_STYLE_HINTS)
+    return {"variant": variant + 1, "instruction": _STYLE_HINTS[variant]}
+
+
+def _relevant_contracts(procurement, supplier, limit: int = 2) -> list[dict]:
+    query_tokens = _tokens(
+        getattr(procurement, "title", ""),
+        getattr(procurement, "subject", ""),
+        getattr(procurement, "keywords", ""),
+        getattr(procurement, "okpd2_name", ""),
+    )
+    target_okpd = re.sub(r"\D", "", str(getattr(procurement, "okpd2_code", "") or ""))
+    rows = []
+    for contract in (getattr(supplier, "contracts", None) or []):
+        subject = _short(getattr(contract, "subject", None) or getattr(contract, "product_name", None), 260)
+        if not subject:
+            continue
+        subject_tokens = _tokens(subject)
+        overlap = len(query_tokens & subject_tokens)
+        code = str(getattr(contract, "okpd2_code", "") or "")
+        code_clean = re.sub(r"\D", "", code)
+        okpd_bonus = 0
+        if target_okpd and code_clean:
+            if code_clean == target_okpd:
+                okpd_bonus = 6
+            elif len(target_okpd) >= 4 and code_clean[:4] == target_okpd[:4]:
+                okpd_bonus = 4
+            elif len(target_okpd) >= 2 and code_clean[:2] == target_okpd[:2]:
+                okpd_bonus = 2
+        winner_bonus = 1 if bool(getattr(contract, "is_winner", True)) else 0
+        score = overlap * 3 + okpd_bonus + winner_bonus
+        rows.append((score, int(getattr(contract, "year", 0) or 0), {
+            "subject": subject,
+            "okpd2": code or None,
+            "year": getattr(contract, "year", None),
+            "winner": bool(getattr(contract, "is_winner", True)),
+        }))
+    rows.sort(key=lambda x: (x[0], x[1]), reverse=True)
+    # Даже если текстового overlap нет, последние исторические победы полезнее,
+    # чем пустой блок: Qwen увидит их как контекст, но не должна объявлять их
+    # релевантными без других сигналов.
+    return [item for _, _, item in rows[:limit]]
+
+
+def _review_samples(supplier, limit: int = 1) -> list[dict]:
+    reviews = sorted(
+        (getattr(supplier, "reviews", None) or []),
+        key=lambda r: getattr(r, "created_at", None) or 0,
+        reverse=True,
+    )
+    out = []
+    for review in reviews:
+        comment = _short(getattr(review, "comment", None), 240)
+        if not comment:
+            continue
+        out.append({"rating": getattr(review, "rating", None), "comment": comment})
+        if len(out) >= limit:
+            break
+    return out
 
 
 def build_facts(procurement, supplier, scores: dict, role: str | None = None) -> dict:
@@ -63,10 +153,11 @@ def build_facts(procurement, supplier, scores: dict, role: str | None = None) ->
     )
     selected_role = role or classify_role(supplier, procurement)
     return {
+        "writing_style": _style_for(procurement, supplier),
         "request": {
             "title": _short(getattr(procurement, "title", ""), 240),
-            "subject": _short(getattr(procurement, "subject", ""), 650),
-            "keywords": _short(getattr(procurement, "keywords", ""), 300),
+            "subject": _short(getattr(procurement, "subject", ""), 800),
+            "keywords": _short(getattr(procurement, "keywords", ""), 350),
             "okpd2": getattr(procurement, "okpd2_code", None),
             "delivery_region": getattr(procurement, "delivery_region", None) or getattr(procurement, "region", None),
         },
@@ -74,8 +165,8 @@ def build_facts(procurement, supplier, scores: dict, role: str | None = None) ->
             "name": _short(getattr(supplier, "name", ""), 240),
             "inn": getattr(supplier, "inn", None),
             "region": getattr(supplier, "region", None),
-            "specialization": _short(getattr(supplier, "specialization", ""), 650),
-            "okpd2_codes": [x.strip() for x in str(getattr(supplier, "okpd2_codes", "") or "").split(",") if x.strip()][:8],
+            "specialization": _short(getattr(supplier, "specialization", ""), 520),
+            "okpd2_codes": [x.strip() for x in str(getattr(supplier, "okpd2_codes", "") or "").split(",") if x.strip()][:10],
             "classification": selected_role,
             "classification_reason": role_reason(supplier, procurement),
             "is_gisp_manufacturer": bool(getattr(supplier, "is_gisp_manufacturer", False)),
@@ -91,10 +182,12 @@ def build_facts(procurement, supplier, scores: dict, role: str | None = None) ->
             "wins": wins,
             "win_rate_percent": win_rate,
             "same_customer_wins": same_customer,
+            "relevant_examples": _relevant_contracts(procurement, supplier),
         },
         "reviews": {
             "internal_rating": reviews["avg"],
             "internal_reviews_count": reviews["count"],
+            "examples": _review_samples(supplier),
         },
         "logistics": {
             "distance_km": geo["distance_km"],
@@ -120,20 +213,17 @@ def explain(procurement, supplier, scores: dict, role: str | None = None) -> dic
     raw = chat(
         SYSTEM_PROMPT,
         json.dumps(facts, ensure_ascii=False, separators=(",", ":")),
-        max_tokens=220,
-        temperature=0.18,
+        max_tokens=280,
+        temperature=0.52,
     )
     text = _normalize_text(raw)
 
-    # Маленькая локальная модель иногда смешивает кириллицу с чужими письменностями.
-    # Такой ответ нельзя показывать пользователю. Один раз просим переписать, затем
-    # безопасно уходим в детерминированный fallback.
     if text and not _valid_generated_text(text):
         repaired = chat(
             _REPAIR_PROMPT,
             json.dumps({"facts": facts, "bad_text": text}, ensure_ascii=False),
-            max_tokens=220,
-            temperature=0.05,
+            max_tokens=250,
+            temperature=0.15,
         )
         text = _normalize_text(repaired)
 
@@ -156,6 +246,7 @@ def _cache_key(procurement, supplier, facts: dict) -> str:
         str(getattr(supplier, "id", None) or getattr(supplier, "inn", "")),
         str(facts["reviews"]["internal_reviews_count"]),
         str(facts["workload"]["active_requests_in_service"]),
+        str(facts["writing_style"]["variant"]),
     ])
 
 
@@ -170,19 +261,22 @@ def _normalize_text(text: str | None) -> str | None:
 
 
 def _valid_generated_text(text: str) -> bool:
-    if len(text) < 120:
+    if len(text) < 160:
         return False
     if _contains_forbidden_script(text):
         return False
-    # Отсеиваем ответы, которые по сути повторяют старую однотипную фразу.
     lowered = text.lower()
     banned_phrases = (
         "высокий рейтинг в категории исполнений",
         "компания подходит как дистрибьютор / оптовик с высоким рейтингом",
+        "идеальная логистика",
     )
     if any(x in lowered for x in banned_phrases):
         return False
-    if "идеаль" in lowered or "гарантирован" in lowered:
+    if "гарантирован" in lowered:
+        return False
+    # Ответ из одной длинной фразы тоже считаем неудачным.
+    if len(re.findall(r"[.!?](?:\s|$)", text)) < 3:
         return False
     return True
 
@@ -206,43 +300,42 @@ def _fallback(facts: dict) -> str:
     logistics = facts["logistics"]
     workload = facts["workload"]
     supplier = facts["supplier"]
+    variant = int(facts.get("writing_style", {}).get("variant") or 1)
 
-    parts: list[str] = []
-    specialization = supplier.get("specialization")
-    if specialization:
-        parts.append(
-            f"По профилю работ компания близка к вашей заявке: смысловое совпадение — {match['semantic_match']}%, "
-            f"а опыт в нужной категории оценён в {match['category_experience']}%."
-        )
-    else:
-        parts.append(
-            f"Компания попала в топ по истории закупок и совпадению с запросом: по смыслу — {match['semantic_match']}%, "
-            f"по опыту в категории — {match['category_experience']}%."
-        )
+    examples = history.get("relevant_examples") or []
+    example = examples[0]["subject"] if examples else None
+    wr = f"{history['win_rate_percent']}%" if history["win_rate_percent"] is not None else None
 
-    if history["participations"]:
-        wr = f"{history['win_rate_percent']}%" if history["win_rate_percent"] is not None else "нет данных"
-        parts.append(
-            f"В базе у неё {history['wins']} побед при {history['participations']} участиях, win rate — {wr}."
-        )
-    else:
-        parts.append("В нашей истории закупок пока недостаточно данных об участиях и победах этой компании.")
-
-    if reviews["internal_reviews_count"]:
-        parts.append(
-            f"Пользователи сервиса оставили {reviews['internal_reviews_count']} отзыв(а/ов), средняя оценка — {reviews['internal_rating']}/5."
-        )
-    elif history["same_customer_wins"]:
-        parts.append(f"Компания уже побеждала в {history['same_customer_wins']} закупке(ах) вашей организации.")
-
-    caution_bits: list[str] = []
-    if logistics.get("note"):
-        caution_bits.append(logistics["note"])
+    match_sentence = (
+        f"Профиль компании хорошо пересекается с предметом заявки: смысловое совпадение составляет {match['semantic_match']}%, "
+        f"а показатель опыта в нужной категории — {match['category_experience']}%."
+    )
+    history_sentence = (
+        f"В закупочной истории зафиксировано {history['wins']} побед при {history['participations']} участиях"
+        + (f", поэтому фактический win rate составляет {wr}." if wr else ".")
+    ) if history["participations"] else "По истории участий и побед пока недостаточно данных для отдельного вывода."
+    example_sentence = f"Среди прошлых работ есть близкий по смыслу пример: «{example}»." if example else (
+        f"Специализация в базе описана как «{supplier['specialization'][:180]}»." if supplier.get("specialization") else
+        "Подробных примеров прошлых работ в локальной базе пока немного, поэтому профиль стоит дополнительно уточнить при контакте."
+    )
+    review_sentence = (
+        f"Внутри сервиса у компании {reviews['internal_reviews_count']} отзыв(а/ов) со средней оценкой {reviews['internal_rating']}/5."
+        if reviews["internal_reviews_count"] else
+        "Отзывов от пользователей сервиса пока нет, поэтому этот фактор не усиливает и не ослабляет рекомендацию."
+    )
+    logistics_sentence = logistics.get("note") or "По логистике недостаточно данных для уверенного вывода."
     if workload.get("warning"):
-        caution_bits.append(workload["warning"])
+        nuance_sentence = workload["warning"]
     elif workload.get("active_requests_in_service") == 0:
-        caution_bits.append("По текущей загрузке вне нашего сервиса данных нет, поэтому свободные ресурсы лучше уточнить напрямую.")
-    if caution_bits:
-        parts.append(" ".join(caution_bits[:2]))
+        nuance_sentence = "Сервис не видит полной загрузки компании вне собственных заявок, поэтому доступность ресурсов лучше уточнить напрямую."
+    else:
+        nuance_sentence = "По текущей нагрузке внутри сервиса критического сигнала нет, но внешнюю загрузку компания не раскрывает."
 
-    return " ".join(parts[:4])
+    orders = {
+        1: [match_sentence, example_sentence, history_sentence, review_sentence, logistics_sentence, nuance_sentence],
+        2: [history_sentence, match_sentence, example_sentence, logistics_sentence, review_sentence, nuance_sentence],
+        3: [match_sentence, history_sentence, review_sentence, example_sentence, nuance_sentence, logistics_sentence],
+        4: [example_sentence, match_sentence, history_sentence, review_sentence, logistics_sentence, nuance_sentence],
+        5: [match_sentence, example_sentence, logistics_sentence, history_sentence, review_sentence, nuance_sentence],
+    }
+    return " ".join(orders.get(variant, orders[1])[:5])

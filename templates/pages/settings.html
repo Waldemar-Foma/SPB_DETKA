@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block main %}
+  <header class="page-header glass">
+    <div class="page-header__text">
+      <h2 class="page-header__title">Настройки</h2>
+      <p class="page-header__subtitle">Здесь можно изменить данные аккаунта: ФИО, e-mail, организацию (название и ИНН) и пароль. Каждый блок сохраняется отдельно.</p>
+    </div>
+    <div class="settings-identity" aria-live="polite">
+      <span class="settings-identity__avatar" id="settings-initials">{{ profile.initials }}</span>
+      <div class="settings-identity__text">
+        <strong id="settings-name">{{ profile.full_name }}</strong>
+        <span id="settings-email">{{ profile.email }}</span>
+        <span class="settings-identity__role">{{ profile.role_label }}</span>
+      </div>
+    </div>
+  </header>
+
+  <section class="panel glass ops-panel">
+    <header class="panel__head"><div><h2 class="panel__title">Профиль</h2><p class="panel__subtitle">ФИО и e-mail, который используется для входа.</p></div></header>
+    <form class="ops-form ops-form--grid settings-form" id="form-profile" data-endpoint="/settings/api/profile" novalidate>
+      <label class="ops-field"><span>ФИО</span><input name="full_name" autocomplete="name" required maxlength="255" value="{{ profile.full_name }}" placeholder="Иван Петров"><small class="ops-field__error" data-error-for="full_name"></small></label>
+      <label class="ops-field"><span>E-mail</span><input type="email" name="email" autocomplete="email" required maxlength="255" value="{{ profile.email }}" placeholder="name@company.ru"><small class="ops-field__error" data-error-for="email"></small></label>
+      <div class="ops-form__actions"><button class="btn btn--accent" type="submit"><i class="las la-save"></i> Сохранить профиль</button></div>
+    </form>
+  </section>
+
+  <section class="panel glass ops-panel">
+    <header class="panel__head"><div><h2 class="panel__title">Организация</h2><p class="panel__subtitle">Название (например, ООО «Компания») и ИНН. По ИНН заявки привязываются к вашей организации.</p></div></header>
+    <form class="ops-form ops-form--grid settings-form" id="form-organization" data-endpoint="/settings/api/organization" novalidate>
+      <label class="ops-field"><span>Название организации</span><input name="organization_name" maxlength="255" value="{{ profile.organization_name }}" placeholder="ООО «Компания»"><small class="ops-field__error" data-error-for="organization_name"></small></label>
+      <label class="ops-field"><span>ИНН организации</span><input name="organization_inn" inputmode="numeric" required maxlength="12" value="{{ profile.organization_inn }}" placeholder="10 или 12 цифр"><small class="ops-field__error" data-error-for="organization_inn"></small></label>
+      <div class="ops-note settings-note ops-field--wide">Если вы единственный пользователь организации, при смене ИНН все ваши заявки автоматически переедут на новый ИНН. Если по старому ИНН работают другие пользователи, заявки останутся у них.</div>
+      <div class="ops-form__actions"><button class="btn btn--accent" type="submit"><i class="las la-save"></i> Сохранить организацию</button></div>
+    </form>
+  </section>
+
+  <section class="panel glass ops-panel">
+    <header class="panel__head"><div><h2 class="panel__title">Пароль</h2><p class="panel__subtitle">Минимум 8 символов: заглавная и строчная латинские буквы, цифра и спецсимвол, например ! @ # $ %.</p></div></header>
+    <form class="ops-form ops-form--grid settings-form" id="form-password" data-endpoint="/settings/api/password" novalidate>
+      <label class="ops-field"><span>Текущий пароль</span><input type="password" name="current_password" autocomplete="current-password" required><small class="ops-field__error" data-error-for="current_password"></small></label>
+      <label class="ops-field"><span>Новый пароль</span><input type="password" name="new_password" autocomplete="new-password" minlength="8" required><small class="ops-field__error" data-error-for="new_password"></small></label>
+      <label class="ops-field"><span>Повторите новый пароль</span><input type="password" name="new_password2" autocomplete="new-password" minlength="8" required><small class="ops-field__error" data-error-for="new_password2"></small></label>
+      <div class="ops-form__actions"><button class="btn btn--accent" type="submit"><i class="las la-key"></i> Изменить пароль</button></div>
+    </form>
+  </section>
+{% endblock %}

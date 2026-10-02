@@ -16,6 +16,9 @@
     })();
   </script>
   <title>{{ page_title }} — Подбор контрагентов</title>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/logo.svg') }}">
+  <link rel="icon" type="image/png" sizes="88x88" href="{{ url_for('static', filename='img/favicon.png') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/favicon.png') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/themes/light.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/themes/dark.css') }}">
@@ -36,12 +39,24 @@
         <label><span>E-mail</span><input type="email" name="email" required value="{{ values.email }}" placeholder="name@company.ru"></label>
         <label><span>ИНН организации</span><input name="organization_inn" inputmode="numeric" required value="{{ values.organization_inn }}" placeholder="10 или 12 цифр"></label>
         <label><span>Название организации</span><input name="organization_name" value="{{ values.organization_name }}" placeholder="ООО «Компания»"></label>
-        <label><span>Пароль</span><input type="password" name="password" autocomplete="new-password" required placeholder="Минимум 8 символов"></label>
-        <label><span>Повторите пароль</span><input type="password" name="password2" autocomplete="new-password" required></label>
+        <label class="auth-password-field"><span>Пароль</span><span class="auth-password-wrap" data-password-wrap><input type="password" name="password" data-password-input data-password-policy autocomplete="new-password" minlength="8" required placeholder="Минимум 8 символов"><button type="button" class="auth-password-toggle" data-password-toggle aria-pressed="false">Показать</button></span></label>
+        <label class="auth-password-field"><span>Повторите пароль</span><span class="auth-password-wrap" data-password-wrap><input type="password" name="password2" data-password-input autocomplete="new-password" minlength="8" required><button type="button" class="auth-password-toggle" data-password-toggle aria-pressed="false">Показать</button></span></label>
+        <div class="auth-password-rules auth-field--full" aria-live="polite">
+          <strong>Требования к паролю</strong>
+          <div class="auth-password-rules__grid">
+            <span data-password-check="length">Не менее 8 символов</span>
+            <span data-password-check="latin">Только латиница, цифры и спецсимволы</span>
+            <span data-password-check="upper">Есть заглавная буква A–Z</span>
+            <span data-password-check="lower">Есть строчная буква a–z</span>
+            <span data-password-check="digit">Есть цифра 0–9</span>
+            <span data-password-check="special">Есть специальный символ</span>
+          </div>
+        </div>
         <button class="auth-submit auth-field--full" type="submit">Создать аккаунт</button>
       </form>
       <p class="auth-foot">Уже есть аккаунт? <a href="{{ url_for('auth.login') }}">Войти</a></p>
     </section>
   </main>
+  <script type="module" src="{{ url_for('static', filename='js/pages/authPage.js') }}"></script>
 </body>
 </html>

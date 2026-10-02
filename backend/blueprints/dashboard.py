@@ -17,9 +17,9 @@ def page():
     if not procurement or procurement.deleted_at:
         return redirect(url_for("contracts.page"))
 
-    # Подбор доступен только пока заказчик ещё никого не выбрал.
-    # После выбора, завершения или архива прямой URL /dashboard/ тоже не открывает карту.
-    if procurement.selected_supplier_inn or procurement.status != "matching" or procurement.completed_at or procurement.archived_at:
+    # Пока заказ не завершён, заказчик может вернуться к карте и заменить
+    # выбранного исполнителя. После завершения/архива подбор блокируется.
+    if procurement.status not in {"matching", "selected"} or procurement.completed_at or procurement.archived_at:
         return redirect(url_for("contracts.detail", number=procurement.procurement_number))
 
     response = render_template("pages/dashboard.html", page_id="dashboard", page_title="Подбор исполнителя")

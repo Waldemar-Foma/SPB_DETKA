@@ -8,15 +8,40 @@ from backend.models import User
 
 
 def current_user() -> User | None:
+    """Возвращает пользователя только если cookie относится к этой же записи БД.
+
+    Проект часто пересобирает demo/real SQLite. Старый session cookie мог хранить
+    user_id=1, а после пересоздания БД id=1 уже принадлежал администратору. В таком
+    случае браузер неожиданно оказывался в админке. Храним вместе с id e-mail и
+    сбрасываем устаревшие сессии, чтобы id нельзя было случайно переиспользовать.
+    """
     user_id = session.get("user_id")
-    if not user_id:
+    session_email = (session.get("user_email") or "").strip().lower()
+    if not user_id or not session_email:
+        if user_id or session_email:
+            session.clear()
         return None
-    return User.query.get(user_id)
+
+    user = db_session_get_user(user_id)
+    if not user or (user.email or "").strip().lower() != session_email:
+        session.clear()
+        return None
+    return user
+
+
+def db_session_get_user(user_id: int) -> User | None:
+    # SQLAlchemy 2.x API без legacy Query.get warning.
+    from backend.extensions import db
+    try:
+        return db.session.get(User, int(user_id))
+    except (TypeError, ValueError):
+        return None
 
 
 def login_user(user: User) -> None:
     session.clear()
     session["user_id"] = user.id
+    session["user_email"] = (user.email or "").strip().lower()
     session.permanent = True
 
 

@@ -16,6 +16,9 @@
     })();
   </script>
   <title>{{ page_title }} — Подбор контрагентов</title>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/logo.svg') }}">
+  <link rel="icon" type="image/png" sizes="88x88" href="{{ url_for('static', filename='img/favicon.png') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/favicon.png') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/themes/light.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/themes/dark.css') }}">
@@ -33,11 +36,12 @@
       {% if error %}<div class="auth-alert auth-alert--error">{{ error }}</div>{% endif %}
       <form method="post" class="auth-form">
         <label><span>E-mail</span><input type="email" name="email" autocomplete="email" required placeholder="name@company.ru"></label>
-        <label><span>Пароль</span><input type="password" name="password" autocomplete="current-password" required></label>
+        <label class="auth-password-field"><span>Пароль</span><span class="auth-password-wrap" data-password-wrap><input type="password" name="password" data-password-input autocomplete="current-password" required><button type="button" class="auth-password-toggle" data-password-toggle aria-pressed="false">Показать</button></span></label>
         <button class="auth-submit" type="submit">Войти</button>
       </form>
       <p class="auth-foot">Нет аккаунта? <a href="{{ url_for('auth.register') }}">Зарегистрироваться</a></p>
     </section>
   </main>
+  <script type="module" src="{{ url_for('static', filename='js/pages/authPage.js') }}"></script>
 </body>
 </html>

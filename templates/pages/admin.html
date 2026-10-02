@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
 {% block main %}
+  {% include "partials/_admin_tabs.html" %}
   <header class="page-header glass">
     <div class="page-header__text">
       <h2 class="page-header__title">Администрирование</h2>
@@ -19,25 +20,41 @@
 
   <section class="ops-two-col">
     <article class="panel glass ops-panel">
-      <header class="panel__head"><div><h2 class="panel__title">Локальные нейросети</h2><p class="panel__subtitle">all-minilm + FAISS для первичного пула, multilingual-e5-base для финального скоринга и qwen2.5:3b для объяснений.</p></div><button class="btn btn--accent btn--sm" id="admin-test-models" type="button">Тест инференса</button></header>
+      <header class="panel__head"><div><h2 class="panel__title">Локальные нейросети</h2><p class="panel__subtitle">FAISS + all-minilm для подбора кандидатов и qwen2.5:3b для понятных объяснений результата.</p></div><button class="btn btn--accent btn--sm" id="admin-test-models" type="button">Тест инференса</button></header>
       <div class="ops-health-grid">
-        <div class="ops-health" id="health-candidate"><span class="ops-health__dot"></span><div><strong>FAISS / all-minilm</strong><span>Проверяем…</span></div></div>
-        <div class="ops-health" id="health-embeddings"><span class="ops-health__dot"></span><div><strong>Final semantic / E5</strong><span>Проверяем…</span></div></div>
-        <div class="ops-health" id="health-llm"><span class="ops-health__dot"></span><div><strong>Qwen</strong><span>Проверяем…</span></div></div>
+        <div class="ops-health is-idle" id="health-candidate"><span class="ops-health__dot"></span><div><strong>FAISS / all-minilm</strong></div></div>
+        <div class="ops-health is-idle" id="health-llm"><span class="ops-health__dot"></span><div><strong>Qwen</strong></div></div>
       </div>
-      <pre class="ops-log" id="model-test-output">Нажмите «Тест инференса», чтобы прогнать реальный запрос через FAISS/all-minilm, E5 и Qwen.</pre>
+      <pre class="ops-log" id="model-test-output">Нажмите «Тест инференса», чтобы проверить реальный запрос через FAISS/all-minilm и Qwen.</pre>
     </article>
 
     <article class="panel glass ops-panel">
-      <header class="panel__head"><div><h2 class="panel__title">ГИСП / Минпромторг</h2><p class="panel__subtitle">Скачивание реестра идёт отдельным процессом внутри контейнера. Chromium для Playwright уже установлен Docker-образом; синхронизацию можно запускать прямо отсюда.</p></div><div class="panel__actions"><button class="btn btn--ghost btn--sm" id="admin-enrich-gisp" type="button">Применить текущий XLSX</button><button class="btn btn--accent btn--sm" id="admin-run-gisp" type="button">Скачать и синхронизировать</button></div></header>
+      <header class="panel__head"><div><h2 class="panel__title">ГИСП / Минпромторг</h2><p class="panel__subtitle">Синхронизация сначала обращается к официальному ГИСП. Если автоматический доступ блокируется HTTP 403, используется публичное fallback-зеркало для проверки ИНН компаний из поискового пула. Процесс и источник видны в журнале.</p></div><div class="panel__actions"><button class="btn btn--ghost btn--sm" id="admin-enrich-gisp" type="button">Применить текущий XLSX</button><button class="btn btn--accent btn--sm" id="admin-run-gisp" type="button">Скачать и синхронизировать</button></div></header>
       <div class="ops-health-grid">
-        <div class="ops-health" id="health-gisp-job"><span class="ops-health__dot"></span><div><strong>Задача</strong><span>—</span></div></div>
-        <div class="ops-health" id="health-gisp-file"><span class="ops-health__dot"></span><div><strong>Файл реестра</strong><span>{{ 'есть' if gisp_file.exists else 'не скачан' }}</span></div></div>
+        <div class="ops-health is-idle" id="health-gisp-parser"><span class="ops-health__dot"></span><div><strong>Парсер</strong></div></div>
+        <div class="ops-health is-idle" id="health-gisp-job"><span class="ops-health__dot"></span><div><strong>Последний запуск</strong></div></div>
+        <div class="ops-health is-idle" id="health-gisp-file"><span class="ops-health__dot"></span><div><strong>Файл реестра</strong></div></div>
       </div>
       <div class="ops-note">
         {% if latest_sync %}Последнее обогащение: {{ latest_sync.status }} · строк {{ latest_sync.rows_total }} · совпало {{ latest_sync.matched_suppliers }}{% else %}Синхронизация ещё не выполнялась.{% endif %}
       </div>
     </article>
+  </section>
+
+  <section class="panel glass ops-panel">
+    <header class="panel__head">
+      <div>
+        <h2 class="panel__title">Обогащение компаний</h2>
+        <p class="panel__subtitle">Тестовые извещения/ТРУ с Yandex Disk дополняют реальную историю компаний. DaData, если задан токен, добавляет название, ОГРН, ОКВЭД, адрес и регион прямо в основную БД.</p>
+      </div>
+      <button class="btn btn--accent btn--sm" id="admin-run-company-enrichment" type="button">Синхронизировать данные</button>
+    </header>
+    <div class="ops-health-grid">
+      <div class="ops-health is-idle" id="health-company-enrichment"><span class="ops-health__dot"></span><div><strong>Тестовые данные + DaData</strong></div></div>
+      <div class="ops-health is-idle" id="health-dadata-config"><span class="ops-health__dot"></span><div><strong>DaData token</strong></div></div>
+    </div>
+    <div class="ops-note">Повторный запуск безопасен: история и DaData кэшируются, а уже существующие контракты не дублируются.</div>
+    <pre class="ops-log" id="company-enrichment-log">Журнал пока пуст.</pre>
   </section>
 
   <section class="panel glass ops-panel">

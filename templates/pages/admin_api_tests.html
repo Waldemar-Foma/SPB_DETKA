@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block main %}
+  {% include "partials/_admin_tabs.html" %}
+
+  <header class="page-header glass">
+    <div class="page-header__text">
+      <h2 class="page-header__title">Тесты АПИ</h2>
+      <p class="page-header__subtitle">Замер скорости работы серверных API. Каждый запрос выполняется несколько раз, показываются минимум, среднее и максимум. Тест только читает данные и ничего не меняет. Время указано без учёта сети: это скорость обработки на сервере.</p>
+    </div>
+  </header>
+
+  <section class="panel glass ops-panel">
+    <header class="panel__head">
+      <div>
+        <h2 class="panel__title">Запуск теста</h2>
+        <p class="panel__subtitle">Быстро — до {{ thresholds.fast }} мс, нормально — до {{ thresholds.slow }} мс, медленнее — выделяется красным.</p>
+      </div>
+      <div class="panel__actions apitest-controls">
+        <label class="apitest-field"><span>Повторов</span>
+          <select id="apitest-runs">
+            <option value="1">1</option>
+            <option value="3" selected>3</option>
+            <option value="5">5</option>
+            <option value="10">10</option>
+          </select>
+        </label>
+        <label class="apitest-check"><input type="checkbox" id="apitest-ai"> <span>Включить ИИ (FAISS и Qwen)</span></label>
+        <button class="btn btn--accent" id="apitest-run" type="button"><i class="las la-play"></i> Запустить тест</button>
+      </div>
+    </header>
+    <div class="ops-note" id="apitest-status">Тест ещё не запускался.</div>
+  </section>
+
+  <section class="ops-kpis" id="apitest-kpis" hidden>
+    <article class="cabinet-stat"><span>Проверок пройдено</span><strong id="apitest-passed">—</strong></article>
+    <article class="cabinet-stat"><span>Среднее время ответа</span><strong id="apitest-avg">—</strong></article>
+    <article class="cabinet-stat"><span>Самый медленный</span><strong class="ops-kpi-small" id="apitest-slowest">—</strong></article>
+    <article class="cabinet-stat"><span>Весь тест занял</span><strong id="apitest-total">—</strong></article>
+  </section>
+
+  <section class="panel glass ops-panel">
+    <header class="panel__head"><div><h2 class="panel__title">Результаты</h2><p class="panel__subtitle" id="apitest-when">Последний запуск: —</p></div></header>
+    <div class="table-host">
+      <table class="shortlist apitest-table">
+        <thead>
+          <tr><th>Проверка</th><th>Запрос</th><th>Статус</th><th>Мин</th><th>Среднее</th><th>Макс</th><th>Скорость</th></tr>
+        </thead>
+        <tbody id="apitest-body">
+          <tr><td colspan="7"><div class="table-empty"><i class="las la-tachometer-alt"></i><p>Нажмите «Запустить тест», чтобы замерить скорость API.</p></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel glass ops-panel">
+    <header class="panel__head"><div><h2 class="panel__title">История запусков</h2><p class="panel__subtitle">Последние 10 запусков, чтобы видеть, ускорилась система или замедлилась.</p></div></header>
+    <div class="table-host">
+      <table class="shortlist apitest-table">
+        <thead><tr><th>Дата</th><th>Повторов</th><th>Пройдено</th><th>Среднее</th><th>Самый медленный</th><th>Всего</th></tr></thead>
+        <tbody id="apitest-history"><tr><td colspan="6"><div class="table-empty"><p>История пуста.</p></div></td></tr></tbody>
+      </table>
+    </div>
+  </section>
+{% endblock %}

@@ -1,13 +1,20 @@
-<nav class="app-sidebar app-sidebar--no-logo" aria-label="Основная навигация">
+<nav class="app-sidebar" aria-label="Основная навигация">
+  <a class="app-sidebar__brand" href="{{ url_for('main.index') }}" title="На главную">
+    <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="Логотип" width="42" height="42">
+  </a>
   <ul class="app-sidebar__menu">
     {% if current_user and current_user.account_role == 'admin' %}
       <li><a href="{{ url_for('admin.page') }}" class="app-sidebar__link {{ 'is-active' if page_id == 'admin' else '' }}" title="Администрирование"><i class="las la-tools"></i></a></li>
+      <li><a href="{{ url_for('admin.api_tests_page') }}" class="app-sidebar__link {{ 'is-active' if page_id == 'admin-api-tests' else '' }}" title="Тесты АПИ"><i class="las la-tachometer-alt"></i></a></li>
     {% else %}
       <li><a href="{{ url_for('contracts.page') }}" class="app-sidebar__link {{ 'is-active' if page_id in ['requests','request-detail','request-new'] else '' }}" title="Мои заявки"><i class="las la-clipboard-list"></i></a></li>
       <li><a href="{{ url_for('security.page') }}" class="app-sidebar__link {{ 'is-active' if page_id == 'security' else '' }}" title="Проверка СБ"><i class="las la-shield-alt"></i></a></li>
     {% endif %}
   </ul>
   <div class="app-sidebar__bottom">
-    {% if current_user %}<a class="app-sidebar__link" href="{{ url_for('auth.logout') }}" title="Выйти"><i class="las la-sign-out-alt"></i></a>{% endif %}
+    {% if current_user %}
+      <a class="app-sidebar__link {{ 'is-active' if page_id == 'settings' else '' }}" href="{{ url_for('settings.page') }}" title="Настройки"><i class="las la-cog"></i></a>
+      <a class="app-sidebar__link" href="{{ url_for('auth.logout') }}" title="Выйти"><i class="las la-sign-out-alt"></i></a>
+    {% endif %}
   </div>
 </nav>

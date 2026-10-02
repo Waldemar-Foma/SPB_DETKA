@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import string
 from datetime import datetime
 from urllib.parse import urlparse
 
@@ -11,6 +12,28 @@ from backend.models import User
 from backend.services.auth import current_user, login_user, logout_user
 
 bp = Blueprint("auth", __name__, url_prefix="/auth")
+
+
+PASSWORD_ALLOWED = set(string.ascii_letters + string.digits + string.punctuation)
+PASSWORD_SPECIALS = set(string.punctuation)
+
+
+def _password_errors(password: str) -> list[str]:
+    """Проверяет пароль на сервере. Разрешены только ASCII/латиница, цифры и спецсимволы."""
+    errors: list[str] = []
+    if len(password) < 8:
+        errors.append("Пароль должен содержать минимум 8 символов.")
+    if any(ch not in PASSWORD_ALLOWED for ch in password):
+        errors.append("Пароль может содержать только латинские буквы, цифры и специальные символы без пробелов.")
+    if not any(ch in string.ascii_uppercase for ch in password):
+        errors.append("Добавьте хотя бы одну заглавную латинскую букву.")
+    if not any(ch in string.ascii_lowercase for ch in password):
+        errors.append("Добавьте хотя бы одну строчную латинскую букву.")
+    if not any(ch in string.digits for ch in password):
+        errors.append("Добавьте хотя бы одну цифру.")
+    if not any(ch in PASSWORD_SPECIALS for ch in password):
+        errors.append("Добавьте хотя бы один специальный символ, например ! @ # $ %.")
+    return errors
 
 
 def _clean_inn(value: str) -> str:
@@ -28,9 +51,9 @@ def _safe_next(value: str | None) -> str | None:
 
 @bp.route("/register", methods=["GET", "POST"])
 def register():
-    if current_user():
-        return redirect(url_for("admin.page" if current_user().account_role == "admin" else "contracts.page"))
-
+    # Страница регистрации доступна даже при активной сессии. Это позволяет
+    # выйти из случайно сохранённой admin-сессии фактически созданием/входом
+    # в нужный аккаунт, а не зацикливаться на редиректе в /admin/.
     errors: list[str] = []
     values = {
         "full_name": request.form.get("full_name", "").strip(),
@@ -50,8 +73,7 @@ def register():
             errors.append("Пользователь с таким e-mail уже зарегистрирован.")
         if len(values["organization_inn"]) not in (10, 12):
             errors.append("ИНН организации должен содержать 10 или 12 цифр.")
-        if len(password) < 8:
-            errors.append("Пароль должен содержать минимум 8 символов.")
+        errors.extend(_password_errors(password))
         if password != password2:
             errors.append("Пароли не совпадают.")
 
@@ -74,9 +96,9 @@ def register():
 
 @bp.route("/login", methods=["GET", "POST"])
 def login():
-    if current_user():
-        return redirect(url_for("admin.page" if current_user().account_role == "admin" else "contracts.page"))
-
+    # Не редиректим уже авторизованного пользователя автоматически.
+    # Форма входа также служит безопасным переключением аккаунта: успешный
+    # login_user() полностью заменяет предыдущую сессию.
     error = None
     if request.method == "POST":
         email = request.form.get("email", "").strip().lower()

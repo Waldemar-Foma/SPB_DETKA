@@ -1,0 +1,4 @@
+<nav class="view-switcher admin-tabs" aria-label="Разделы администрирования">
+  <a class="view-tab {{ 'is-active' if page_id == 'admin' else '' }}" href="{{ url_for('admin.page') }}"><i class="las la-tools"></i> Обзор</a>
+  <a class="view-tab {{ 'is-active' if page_id == 'admin-api-tests' else '' }}" href="{{ url_for('admin.api_tests_page') }}"><i class="las la-tachometer-alt"></i> Тесты АПИ</a>
+</nav>

@@ -35,10 +35,36 @@
   <p class="dash-ai__text" id="ai-summary-text">Система сравнивает ваш запрос с профилями компаний, опытом и логистикой.</p>
 </aside>
 
-<section class="dash-list" aria-label="Топ-5 исполнителей">
+<section class="dash-list" aria-label="Релевантные исполнители">
   <div class="panel">
-    <header class="panel__head"><div><h2 class="panel__title">Топ-5 компаний</h2><p class="panel__subtitle">Короткая сводка без лишней аналитики. Финальный выбор всегда за вами.</p></div><button class="btn btn--ghost" id="list-open-filters" type="button"><i class="las la-sliders-h"></i> Кто нужен</button></header>
-    <div class="top5-list" id="top5-list"></div>
+    <header class="panel__head">
+      <div>
+        <h2 class="panel__title">Релевантные исполнители</h2>
+        <p class="panel__subtitle" id="list-subtitle">Топ-5 компаний сформирован ИИ. Финальный выбор всегда за вами.</p>
+      </div>
+      <div class="panel__actions">
+        <label class="search-inline">
+          <i class="las la-search"></i>
+          <input type="search" id="list-search" placeholder="Поиск по названию, ИНН, региону" autocomplete="off">
+        </label>
+        <button class="btn btn--ghost" id="list-open-filters" type="button"><i class="las la-sliders-h"></i> Фильтры</button>
+      </div>
+    </header>
+    <div class="table-host">
+      <table class="shortlist">
+        <thead>
+          <tr>
+            <th>Компания</th>
+            <th>Роль</th>
+            <th>Регион</th>
+            <th>Объём контрактов</th>
+            <th>Индекс релевантности</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="shortlist-body"></tbody>
+      </table>
+    </div>
   </div>
 </section>
 

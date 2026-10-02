@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from flask import Blueprint, jsonify, request
 from sqlalchemy import or_
+from sqlalchemy.orm import selectinload
 
 from backend.models import ExternalMention, Procurement, RegistrySync, Supplier, SupplierReview
 from backend.services.auth import current_user
@@ -77,7 +78,7 @@ def details(inn: str):
         "contacts_locked": not can_see_contacts,
         "company_type": role,
         "role_reason": role_reason(supplier, procurement) if procurement else "Классификация рассчитана по реестровым признакам.",
-        "ai_explanation": explain(procurement, supplier, scores, role) if procurement else None,
+        "ai_explanation": {"status": "pending", "text": None, "source": None} if procurement else None,
         "scoring_breakdown": {
             "total": scores["total"],
             "semantic": scores.get("product", 0),
@@ -107,6 +108,23 @@ def details(inn: str):
         } for r in internal_reviews],
         "external_mentions": [_mention(m) for m in cached_mentions],
     })
+
+
+@bp.get("/<inn>/explanation")
+def explanation_for(inn: str):
+    supplier = Supplier.query.options(selectinload(Supplier.contracts), selectinload(Supplier.reviews)).filter_by(inn=inn).first_or_404()
+    procurement_number = request.args.get("procurement_id")
+    if not procurement_number:
+        return jsonify({"error": {"code": "missing_procurement", "message": "Не указана заявка"}}), 400
+    procurement = Procurement.query.filter_by(procurement_number=procurement_number).first_or_404()
+    user = current_user()
+    if user and user.account_role != "admin" and procurement.customer_inn != user.organization_inn:
+        return jsonify({"error": {"code": "forbidden", "message": "Нет доступа к этой заявке"}}), 403
+
+    scores = compute_score(procurement, supplier)
+    role = classify_role(supplier, procurement)
+    result = explain(procurement, supplier, scores, role)
+    return jsonify({**result, "status": "ready"})
 
 
 @bp.post("/<inn>/external-reputation")
